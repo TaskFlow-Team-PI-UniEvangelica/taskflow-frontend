@@ -1,0 +1,52 @@
+.mainCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 40px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+  animation: cardEnter 0.5s ease-out;
+}
+
+.header { margin-bottom: 30px; border-bottom: 1px solid var(--border-color); padding-bottom: 20px; }
+.title { font-size: 1.5rem; font-weight: 700; color: var(--text-primary); }
+.subtitle { color: var(--text-secondary); font-size: 0.9rem; }
+
+.layoutGrid { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 30px; }
+
+.field { display: flex; flex-direction: column; gap: 8px; margin-bottom: 20px; }
+.field label { font-size: 0.75rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; }
+
+
+.input {
+  background-color: #f1f5f9;
+  border: 2px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 14px;
+  color: #1e293b;
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+}
+
+.input:focus {
+  background-color: #fff;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+  outline: none;
+}
+
+
+.primaryBtn { background: var(--primary-blue); color: white; padding: 12px 30px; border-radius: 8px; border: none; font-weight: 700; cursor: pointer; }
+.secondaryBtn { background: transparent; color: var(--text-secondary); border: none; cursor: pointer; font-weight: 600; padding: 0 20px; }
+.addMemberBtn { background: transparent; border: 2px dashed #cbd5e1; color: var(--primary-blue); padding: 12px; border-radius: 8px; cursor: pointer; font-weight: 600; width: 100%; }
+
+.memberRow { display: flex; gap: 10px; margin-bottom: 10px; }
+.removeBtn { background: #fee2e2; color: #ef4444; border: none; padding: 10px; border-radius: 8px; cursor: pointer; }
+
+.statsMiniCard { background: #f8fafc; padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; gap: 5px; }
+.miniValue { color: var(--primary-blue); font-size: 1.2rem; }
+
+@keyframes cardEnter { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+
+:global(.dark) .input { background-color: #18181b; border-color: #27272a; color: #fafafa; }
+:global(.dark) .statsMiniCard { background-color: #1e1e21; }

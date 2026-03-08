@@ -1,0 +1,113 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  color: #000000;
+  background-image: url('public/background.png');
+}
+
+.card {
+  position: relative;
+  display: flex;
+  width: 950px;
+  height: 650px;
+  background: #fcfcfc;
+  border-radius: 24px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+
+.formSection {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 50%;
+  height: 100%;
+  padding: 50px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  transition: transform 0.6s ease-in-out; 
+}
+
+
+.brandSection {
+  position: absolute;
+  top: 0;
+  left: 50%; 
+  width: 50%;
+  height: 100%;
+  background-image: url('public/login.jpg'); 
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.6s ease-in-out;
+  z-index: 5; 
+  transition: transform 0.6s ease-in-out, border-radius 0.6s ease;
+}
+
+.reverse {
+  flex-direction: row-reverse;
+}
+
+
+.card.reverse .formSection {
+  transform: translateX(100%);
+}
+
+
+.card.reverse .brandSection {
+  transform: translateX(-100%);
+}
+
+.swapButton {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 100;
+  background: rgb(255, 255, 255);
+  width: 55px;
+  height: 55px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 0 20px rgba(173, 204, 255, 0.5); 
+  transition: all 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+
+.reversed {
+  transform: translate(-50%, -50%) rotate(180deg);
+}
+
+.card.reverse .swapButton {
+  transform: translate(-50%, -50%) rotate(180deg);
+}
+
+.logoTitle {
+  color: white;
+  font-size: 3rem;
+  line-height: 1.2;
+}
+
+.logoTitle span {
+  background-color: var(--primary-blue);
+  padding: 0px 10px;
+  border-radius: 6px;
+  display: inline-block;
+  margin-bottom: 5px;
+}
+
+
+.swapButton.reversed {
+  transform: translate(-50%, -50%) rotate(180deg);
+}

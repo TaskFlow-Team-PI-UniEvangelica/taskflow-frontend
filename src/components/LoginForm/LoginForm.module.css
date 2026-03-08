@@ -1,0 +1,97 @@
+.header {
+  margin-bottom: 30px;
+  text-align: left;
+}
+
+.title {
+  font-size: 2rem;
+  color: var(--text-dark);
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.subtitle {
+  color: var(--text-light);
+  font-size: 1rem;
+}
+
+.forgotPassword {
+  text-align: right;
+  margin-bottom: 25px;
+}
+
+.forgotLink {
+  color: var(--primary-blue);
+  font-size: 0.9rem;
+  text-decoration: none;
+  font-weight: 700; 
+  cursor: pointer;
+  transition: color 0.3s ease;
+}
+
+.forgotLink:hover {
+  text-decoration: underline;
+  filter: brightness(1.2); 
+}
+
+
+.formFade {
+  animation: fadeIn 0.5s ease-in-out; 
+}
+
+@keyframes fadeIn {
+  from { 
+    opacity: 0; 
+    transform: translateY(10px); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translateY(0); 
+  }
+}
+
+
+.socialLogin {
+  margin-top: 30px;
+  text-align: center;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  color: var(--text-light);
+  font-size: 0.9rem;
+  margin: 30px 0; 
+}
+
+
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background-color: #006eff;
+}
+
+.divider span {
+  padding: 0 15px;
+}
+
+
+.footerText {
+  color: var(--text-light);
+  margin-top: 25px;
+  font-size: 0.9rem;
+}
+
+.signupLink {
+  color: var(--primary-blue);
+  font-weight: 800;
+  cursor: pointer;
+  margin-left: 5px;
+  transition: all 0.3s ease;
+}
+
+.signupLink:hover {
+  text-shadow: 0 0 8px rgba(37, 83, 235, 0.3); 
+}

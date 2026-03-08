@@ -1,0 +1,35 @@
+.button {
+  width: 100%;
+  padding: 14px;
+  border-radius: 10px;
+  border: none;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+
+.primary {
+  background-color: var(--primary-blue);
+  color: white;
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.primary:hover {
+  background-color: #1d4ed8; 
+}
+
+
+.secondary {
+  background-color: transparent;
+  color: var(--text-dark);
+  border: 1px solid var(--border-color);
+}
+
+.secondary:hover {
+  background-color: #f1f5f9;
+}

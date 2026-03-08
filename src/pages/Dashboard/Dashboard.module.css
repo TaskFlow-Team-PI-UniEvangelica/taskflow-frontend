@@ -1,0 +1,248 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+  animation: fadeIn 0.5s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.title {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+/* --- ESTATÍSTICAS (CARDS) --- */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+
+.statWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.statTitle {
+  font-size: 1rem;
+  font-weight: 500;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.statCard {
+  height: 130px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 3.5rem;
+  font-weight: bold;
+  color: #0f172a; 
+  box-shadow: 0 10px 15px rgba(0, 0, 0, 0.05);
+  transition: transform 0.3s ease, box-shadow 0.3s ease, filter 0.3s ease;
+}
+
+.cardGreen { background-color: #a7f3d0; }
+.cardBlue { background-color: #a5b4fc; }
+.cardOrange { background-color: #f97316; }
+.cardYellow { background-color: #fde047; }
+
+.statCard:hover {
+  transform: translateY(-5px);
+  filter: brightness(1.1);
+  box-shadow: 0 12px 20px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+}
+
+/* --- SEÇÃO DE TAREFAS RECENTES (MODERNA) --- */
+.tasksHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.tasksTitle {
+  font-size: 1.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.tasksTable {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.taskRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background-color: var(--bg-card); 
+  padding: 16px 24px;
+  border-radius: 10px;
+  font-weight: 500;
+  color: var(--text-primary);
+  box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+  border: 1px solid var(--border-color);
+  transition: transform 0.2s ease, border-color 0.2s ease;
+}
+
+.taskRow:hover {
+  transform: translateX(5px);
+  border-color: var(--primary-blue);
+}
+
+.taskMainInfo {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  flex: 2;
+}
+
+/* Indicadores de Status no Dashboard */
+.statusIndicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.bgPendente { background-color: var(--primary-blue); }
+.bgAtrasado { background-color: #ef4444; }
+
+.taskMainInfo strong {
+  display: block;
+  font-size: 1.05rem;
+  margin-bottom: 2px;
+}
+
+.taskMainInfo p {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.taskDeadline {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+}
+
+.overdueBadge {
+  background: #fee2e2;
+  color: #ef4444;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+  border: 1px solid #fca5a5;
+}
+
+/* Tags de Prioridade baseadas no TPA */
+.priorityTag {
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.alta { color: #ef4444; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); }
+.média { color: #eab308; background: rgba(234, 179, 8, 0.1); border: 1px solid rgba(234, 179, 8, 0.2); }
+.baixa { color: #22c55e; background: rgba(34, 197, 94, 0.1); border: 1px solid rgba(34, 197, 94, 0.2); }
+
+/* --- TOASTS E MODAIS --- */
+.createBtn {
+  background-color: var(--primary-blue); 
+  color: white;
+  border: none;
+  padding: 12px 30px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.3s, transform 0.2s;
+}
+
+.createBtn:hover { opacity: 0.9; transform: scale(1.02); }
+
+.toastContainer { position: fixed; bottom: 30px; right: 30px; z-index: 10000; }
+.toastCard {
+  background-color: var(--bg-card);
+  border-left: 5px solid var(--primary-blue);
+  border-radius: 10px;
+  padding: 16px 24px;
+  min-width: 320px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--border-color);
+  animation: slideInRight 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(100%) scale(0.9); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+/* Estilização para modo escuro */
+:global(.dark) .statCard { color: #0f172a; }
+:global(.dark) .taskRow:hover { background-color: #1e1e21; }
+
+.profilePhotoSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.photoPreview {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 3px solid var(--primary-blue);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f1f5f9;
+}
+
+.userPhoto {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.defaultAvatar {
+  font-size: 2rem;
+  font-weight: bold;
+  color: var(--primary-blue);
+}
+
+.uploadLabel {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--primary-blue);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.hiddenInput {
+  display: none;
+}

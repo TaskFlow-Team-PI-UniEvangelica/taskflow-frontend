@@ -1,0 +1,226 @@
+.container {
+  display: flex;
+  height: 100vh;
+  width: 100vw;
+  background-color: var(--bg-app); 
+  color: var(--text-primary);
+  overflow: hidden; 
+  transition: background-color 0.4s ease, color 0.4s ease;
+}
+
+
+.sidebar {
+  width: 200px; 
+  background-color: var(--bg-sidebar); 
+  border-top-right-radius: 25px;
+  border-bottom-right-radius: 25px;
+  padding: 25px 15px; 
+  display: flex;
+  flex-direction: column;
+  box-shadow: 5px 0 15px rgba(0, 0, 0, 0.05);
+  z-index: 10;
+  transition: width 0.3s ease, background-color 0.4s ease;
+}
+
+.logoArea {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 40px;
+}
+
+.logoIcon {
+  background-color: var(--primary-blue);
+  color: white;
+  width: 40px; 
+  height: 40px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.2rem;
+  font-weight: bold;
+}
+
+.logoText {
+  color: var(--text-primary);
+  font-size: 1.2rem;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.menu {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1; 
+}
+
+.menuItem {
+  display: flex;
+  justify-content: space-between; 
+  align-items: center;
+  padding: 10px 15px;
+  border-radius: 10px;
+  color: var(--text-secondary);
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  text-decoration: none;
+  margin-bottom: 8px;
+}
+
+.menuItem:hover {
+  background-color: rgba(128, 128, 128, 0.15); 
+  color: var(--text-primary);
+}
+
+
+.menuItem.active {
+  background-color: #b9d8ff; 
+  color: #000000;
+}
+
+.menuItem.active svg {
+  color: #000000 !important;
+}
+
+:global(body.dark) .menuItem.active {
+  background-color: var(--primary-blue);
+  color: #ffffff;
+}
+
+:global(body.dark) .menuItem.active svg {
+  color: #ffffff !important;
+}
+
+.logoutBtn {
+  margin-top: auto; 
+  color: #ef4444; 
+}
+
+.logoutBtn:hover {
+  background-color: rgba(239, 68, 68, 0.1);
+}
+
+
+.mainContent {
+  flex: 1;
+  padding: 40px;
+  overflow-y: auto; 
+}
+
+
+.toastContainer {
+  position: fixed;
+  bottom: 30px;
+  right: 30px;
+  z-index: 10001; 
+}
+
+.toastCard {
+  background-color: var(--bg-card);
+  border-left: 5px solid var(--primary-blue);
+  border-radius: 10px;
+  padding: 16px 24px;
+  min-width: 300px;
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--border-color);
+  animation: slideInRight 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+}
+
+.toastIcon {
+  color: var(--primary-blue);
+  font-size: 1.4rem;
+  display: flex;
+}
+
+.toastText strong {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--text-primary);
+}
+
+.toastText span {
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+}
+
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(100%) scale(0.9); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+/* --- MODAIS --- */
+.modalOverlay {
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.7);
+  display: flex; justify-content: center; align-items: center;
+  z-index: 100;
+  backdrop-filter: blur(4px);
+}
+
+.modalBox {
+  background: var(--bg-card);
+  padding: 30px;
+  border-radius: 15px;
+  text-align: center;
+  color: var(--text-primary);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  width: 100%;
+  max-width: 450px;
+}
+
+.profileHeader {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 25px;
+  text-align: left;
+}
+
+.avatarCircle {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background-color: #ccc;
+  border: 2px solid var(--primary-blue);
+  overflow: hidden;
+}
+
+.profileForm {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  text-align: left;
+}
+
+.modalActions {
+  display: flex; gap: 15px; margin-top: 25px;
+  justify-content: center;
+}
+
+.btnConfirm, .btnCancel {
+  padding: 10px 20px; border-radius: 8px; border: none; font-weight: bold; cursor: pointer;
+  flex: 1;
+  transition: opacity 0.2s;
+}
+
+.btnConfirm { background: var(--primary-blue); color: white; }
+.btnCancel { background: transparent; border: 1px solid var(--text-secondary); color: var(--text-primary); }
+
+.btnConfirm:hover, .btnCancel:hover { opacity: 0.8; }
+
+.passwordFieldRow {
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}

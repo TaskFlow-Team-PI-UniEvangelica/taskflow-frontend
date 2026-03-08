@@ -1,0 +1,379 @@
+.container {
+  padding: 40px;
+  background: var(--bg-primary);
+  min-height: calc(100vh - 80px);
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.header {
+  display: flex;
+  justify-content: space-between; /* Título à esquerda, busca à direita */
+  align-items: flex-end;
+  margin-bottom: 40px;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 24px;
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.subtitle {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+}
+
+/* --- BARRA DE PESQUISA --- */
+.searchWrapper {
+  position: relative;
+  width: 100%;
+  max-width: 400px; /* Largura controlada para não poluir o cabeçalho */
+}
+
+.searchIcon {
+  position: absolute;
+  left: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  font-size: 1rem;
+}
+
+.searchInput {
+  width: 100%;
+  background-color: #f1f5f9; /* Fundo contrastante para o Modo Claro */
+  border: 2px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 12px 12px 12px 45px;
+  color: #1e293b;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.searchInput:focus {
+  background-color: #ffffff;
+  border-color: var(--primary-blue);
+  box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.1);
+  outline: none;
+}
+
+/* --- GRID DE CARDS --- */
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 32px 24px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  border-color: var(--primary-blue);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+}
+
+/* --- AVATAR E STATUS --- */
+.cardHeader {
+  position: relative;
+  margin-bottom: 20px;
+}
+
+.avatar {
+  font-size: 72px;
+  color: #cbd5e1;
+}
+
+.statusDot {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  background: var(--bg-card);
+  border-radius: 50%;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 3px solid var(--bg-card);
+}
+
+.online { color: #22c55e; }
+.offline { color: #94a3b8; }
+
+/* --- INFORMAÇÕES DO MEMBRO --- */
+.info {
+  margin-bottom: 24px;
+  text-align: center;
+}
+
+.nome {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.cargo {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--primary-blue);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* --- DETALHES TÉCNICOS --- */
+.details {
+  width: 100%;
+  border-top: 1px solid var(--border-color);
+  padding-top: 20px;
+  margin-bottom: 24px;
+}
+
+.detailItem {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--text-secondary);
+  font-size: 0.875rem;
+  margin-bottom: 12px;
+}
+
+.icon {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+/* --- BOTÕES DE AÇÃO --- */
+.cardFooter {
+  width: 100%;
+  margin-top: auto;
+}
+
+.assignBtn {
+  width: 100%;
+  background: var(--primary-blue);
+  color: #ffffff;
+  padding: 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.assignBtn:hover {
+  opacity: 0.9;
+}
+
+.noResult {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: var(--text-secondary);
+  padding: 40px;
+  font-style: italic;
+}
+
+/* --- AJUSTE MODO ESCURO --- */
+:global(.dark) .avatar {
+  color: #3f3f46;
+}
+
+:global(.dark) .searchInput {
+  background-color: #18181b;
+  border-color: #27272a;
+  color: #fafafa;
+}
+
+:global(.dark) .card:hover {
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.4);
+}
+
+/* --- NOVOS BOTÕES E AÇÕES DO CABEÇALHO --- */
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.createTeamBtn {
+  background: var(--primary-blue);
+  color: #ffffff;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.createTeamBtn:hover {
+  filter: brightness(1.1);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+}
+
+.backBtn {
+  background: transparent;
+  color: var(--text-secondary);
+  border: 1px solid var(--border-color);
+  padding: 10px 20px;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.backBtn:hover {
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--text-primary);
+}
+
+/* --- ANIMAÇÃO PARA O FORMULÁRIO DE EQUIPE --- */
+.fadeAnim {
+  animation: slideUpFade 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --- ESTILOS PARA MÚLTIPLOS MEMBROS E PRIORIDADE --- */
+/* Estes estilos conversam com o componente CreateTeamTask.jsx */
+
+:global(.dark) .backBtn:hover {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Estilo para garantir que o formulário de equipe herde a visibilidade dos inputs */
+.fadeAnim input, 
+.fadeAnim select, 
+.fadeAnim textarea {
+  background-color: #f1f5f9;
+  border: 2px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 12px;
+  color: #1e293b;
+  transition: all 0.2s ease;
+}
+
+:global(.dark) .fadeAnim input,
+:global(.dark) .fadeAnim select {
+  background-color: #18181b;
+  border-color: #27272a;
+  color: #fafafa;
+}
+
+/* --- SEÇÃO DE DEMANDAS COLETIVAS --- */
+.teamTasksSection {
+  width: 100%;
+  animation: cardEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.teamTaskCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  /* Borda lateral para indicar que é uma tarefa de grupo */
+  border-left: 6px solid var(--primary-blue); 
+}
+
+.teamTaskCard:hover {
+  transform: translateX(8px); /* Deslize lateral em vez de subir */
+  border-color: var(--primary-blue);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+}
+
+.taskInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.taskInfo strong {
+  font-size: 1.1rem;
+  color: var(--text-primary);
+}
+
+.taskInfo span {
+  font-size: 0.85rem;
+  color: var(--text-secondary);
+}
+
+
+.taskBadge {
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(37, 99, 235, 0.1);
+  color: var(--primary-blue);
+  border: 1px solid rgba(37, 99, 235, 0.2);
+}
+
+
+:global(.dark) .teamTaskCard {
+  background-color: #18181b;
+  border-color: #27272a;
+}
+
+:global(.dark) .taskInfo span {
+  color: #a1a1aa;
+}
+
+
+.taskOverdue {
+  border-left: 6px solid #ef4444 !important; 
+}
+
+.deadlineText {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #ef4444;
+  margin-top: 4px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
