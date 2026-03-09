@@ -21,3 +21,6 @@ o sistema de autenticação será feito e incorporado ao front.
 
 - Acesse a url do projeto localmente
 http://localhost:5173/
+
+- Para acessar o Dashboard entre na url
+http://localhost:5173/dashboard/
