@@ -1,16 +1,11 @@
 ## Taskflow - Frontend
 
 OBS: atualmente o frontend se apresenta estático e apenas visual
-o sistema de autenticação será feito e incorporado ao front.
-
+o sistema de autenticação será feito e incorporado ao front e foi feito com react para os componentes e vite para deploy.
 
 
 ## Requisitos para rodar
 - Node.js
-
-## Tecnologias usadas
--React
--Vite
 
 ## Passos para rodar
 - Clonar o projeto e entrar no terminal na raiz do projeto
