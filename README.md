@@ -14,6 +14,10 @@ o sistema de autenticação será feito e incorporado ao front e foi feito com r
 ```bash
    npm install
    ```
+- Faça o build com
+```bash
+   npm run build
+   ```
 
 - Rode o servidor local com
 ```bash
