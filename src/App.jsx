@@ -7,6 +7,7 @@ import DashboardLayout from './components/DashboardLayout/DashboardLayout';
 import Dashboard from './pages/Dashboard/Dashboard';
 import Tasks from './pages/Tasks/Tasks'; 
 import Teams from './pages/Teams/Teams';
+import ProtectedRoute from './components/AuthLayout/ProtectedRoute'; 
 
 function App() {
   const [isReversed, setIsReversed] = useState(false);
@@ -26,20 +27,25 @@ function App() {
           </AuthLayout>
         } />
 
-     
+        {/* --- MUDANÇA 2: Envolvendo as rotas privadas com o ProtectedRoute --- */}
         <Route path="/dashboard" element={
-          <DashboardLayout><Dashboard /></DashboardLayout>
+          <ProtectedRoute>
+            <DashboardLayout><Dashboard /></DashboardLayout>
+          </ProtectedRoute>
         } />
 
-       
         <Route path="/tasks" element={
-          <DashboardLayout><Tasks /></DashboardLayout>
+          <ProtectedRoute>
+            <DashboardLayout><Tasks /></DashboardLayout>
+          </ProtectedRoute>
         } />
 
-        
         <Route path="/teams" element={
-          <DashboardLayout><Teams /></DashboardLayout>
+          <ProtectedRoute>
+            <DashboardLayout><Teams /></DashboardLayout>
+          </ProtectedRoute>
         } />
+        
       </Routes>
     </Router>
   );

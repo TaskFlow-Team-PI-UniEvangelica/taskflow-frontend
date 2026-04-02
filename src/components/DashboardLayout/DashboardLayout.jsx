@@ -49,6 +49,9 @@ export default function DashboardLayout({ children }) {
   };
 
   const handleLogoutConfirm = () => {
+    // limpa token e foto de usuário ao apertar em sair
+    localStorage.removeItem('token');
+    localStorage.removeItem('user_photo');
     setShowLogoutModal(false);
     navigate('/');
   };
