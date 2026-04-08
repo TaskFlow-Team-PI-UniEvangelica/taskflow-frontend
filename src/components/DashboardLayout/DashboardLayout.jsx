@@ -1,17 +1,21 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import styles from './DashboardLayout.module.css';
-import { FaChartPie, FaTasks, FaUsers, FaSignOutAlt, FaTimes, FaMoon, FaSun, FaSave, FaKey, FaCamera } from 'react-icons/fa';
+import { FaChartPie, FaTasks, FaUsers, FaSignOutAlt, FaTimes, FaMoon, FaSun, FaSave, FaKey, FaCamera, FaIdBadge, FaEnvelope, FaBriefcase } from 'react-icons/fa';
 import { useTheme } from '../../context/ThemeContext';
 
 export default function DashboardLayout({ children }) {
 
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  
+  // --- MUDANÇA 1: Adicionado estado para a senha atual ---
+  const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [isLoadingPassword, setIsLoadingPassword] = useState(false);
   
-
   const [profileImage, setProfileImage] = useState(localStorage.getItem('user_photo') || null);
   
   const { theme, toggleTheme } = useTheme(); 
@@ -19,12 +23,11 @@ export default function DashboardLayout({ children }) {
   const location = useLocation(); 
 
   const [userData, setUserData] = useState({
-    nome: "Wanderlay Silva Neto",
-    email: "wanderlay@exemplo.com",
-    telefone: "(62) 99999-9999",
-    id: "2310078"
+    nome: "Carregando...",
+    email: "carregando...",
+    cargo: "carregando...", 
+    id: "..."
   });
-
 
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
 
@@ -33,6 +36,38 @@ export default function DashboardLayout({ children }) {
     setTimeout(() => setToast({ show: false, message: '', type: '' }), 3000);
   };
 
+  useEffect(() => {
+    const buscarDadosDoUsuario = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return navigate('/');
+
+      try {
+        const response = await fetch('http://localhost:8080/user/me', {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setUserData({
+            nome: data.nome || "Usuário",
+            email: data.email || "Sem email",
+            cargo: data.cargo || "Sem cargo", 
+            id: data.id || "N/A"
+          });
+        } else if (response.status === 401 || response.status === 403) {
+          handleLogoutConfirm();
+        }
+      } catch (error) {
+        console.error("Erro ao buscar dados:", error);
+      }
+    };
+
+    buscarDadosDoUsuario();
+  }, [navigate]); 
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
@@ -49,28 +84,57 @@ export default function DashboardLayout({ children }) {
   };
 
   const handleLogoutConfirm = () => {
-    // limpa token e foto de usuário ao apertar em sair
     localStorage.removeItem('token');
     localStorage.removeItem('user_photo');
     setShowLogoutModal(false);
     navigate('/');
   };
 
-  const handleSaveProfile = (e) => {
-    e.preventDefault();
-    showNotification("Alterações salvas com sucesso!", "save");
-    setShowProfileModal(false);
-  };
-
   const handlePasswordToggle = () => {
     setIsChangingPassword(!isChangingPassword);
+    setNewPassword(''); 
+    setCurrentPassword(''); // Limpa a senha atual ao cancelar também
   };
 
-  const handlePasswordConfirm = () => {
-    if (newPassword.trim() !== "") {
-      showNotification("Senha atualizada com segurança!", "password");
-      setIsChangingPassword(false);
-      setNewPassword('');
+  // --- MUDANÇA 2: Função atualizada para enviar o DTO e usar o PATCH ---
+  const handlePasswordConfirm = async () => {
+    if (currentPassword.trim() === "" || newPassword.trim() === "") {
+      showNotification("Preencha a senha atual e a nova senha.", "error");
+      return;
+    }
+    
+    setIsLoadingPassword(true);
+    try {
+      const token = localStorage.getItem('token');
+      
+      const response = await fetch('http://localhost:8080/user/me/password', {
+        method: 'PATCH',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+
+        body: JSON.stringify({ 
+          senhaAtual: currentPassword,
+          novaSenha: newPassword
+        })
+      });
+
+      if (response.ok) {
+        showNotification("Senha atualizada com segurança!", "password");
+        setIsChangingPassword(false);
+        setNewPassword('');
+        setCurrentPassword('');
+      } else if (response.status === 400 || response.status === 403) {
+        // Trata erro de senha atual incorreta retornada pelo Spring Boot
+        showNotification("Senha atual incorreta ou dados inválidos.", "error");
+      } else {
+        showNotification("Erro ao atualizar a senha.", "error");
+      }
+    } catch (error) {
+      showNotification("Falha na comunicação com o servidor.", "error");
+    } finally {
+      setIsLoadingPassword(false);
     }
   };
 
@@ -79,7 +143,6 @@ export default function DashboardLayout({ children }) {
   return (
     <div className={styles.container}>
       
-     
       {toast.show && (
         <div className={styles.toastContainer}>
           <div className={styles.toastCard}>
@@ -93,7 +156,6 @@ export default function DashboardLayout({ children }) {
           </div>
         </div>
       )}
-
 
       <aside className={styles.sidebar}>
         <div className={styles.logoArea}>
@@ -131,7 +193,7 @@ export default function DashboardLayout({ children }) {
 
           <div onClick={() => setShowProfileModal(true)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
-              {userData.nome.split(' ')[0]}
+              {userData.nome.split(' ')[0]} 
             </span>
             <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#ccc', overflow: 'hidden', border: '2px solid var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {profileImage ? <img src={profileImage} alt="Nav" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
@@ -141,7 +203,6 @@ export default function DashboardLayout({ children }) {
 
         {children}
       </main>
-
     
       {showLogoutModal && (
         <div className={styles.modalOverlay}>
@@ -156,83 +217,100 @@ export default function DashboardLayout({ children }) {
         </div>
       )}
 
-
       {showProfileModal && (
         <div className={styles.modalOverlay}>
-          <div className={styles.modalBox}>
+          <div className={styles.modalBox} style={{ maxWidth: '450px' }}>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <FaTimes onClick={() => { setShowProfileModal(false); setIsChangingPassword(false); }} style={{ cursor: 'pointer' }} />
+              <FaTimes onClick={() => { setShowProfileModal(false); setIsChangingPassword(false); }} style={{ cursor: 'pointer', color: 'var(--text-secondary)' }} />
             </div>
             
-            <div className={styles.profileHeader}>
+            <div className={styles.profileHeader} style={{ marginBottom: '30px' }}>
               <label htmlFor="avatar-upload" style={{ cursor: 'pointer', position: 'relative' }}>
-                <div className={styles.avatarCircle} style={{ position: 'relative', overflow: 'hidden', width: '80px', height: '80px', borderRadius: '50%', border: '3px solid var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div className={styles.avatarCircle} style={{ position: 'relative', overflow: 'hidden', width: '90px', height: '90px', borderRadius: '50%', border: '3px solid var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 15px auto' }}>
                   {profileImage ? (
                     <img src={profileImage} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
                     <FaCamera size={24} color="#ccc" />
                   )}
-               
-                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: '0.3s' }} onMouseEnter={(e) => e.currentTarget.style.opacity = 1} onMouseLeave={(e) => e.currentTarget.style.opacity = 0}>
+                  <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: '0.3s' }} onMouseEnter={(e) => e.currentTarget.style.opacity = 1} onMouseLeave={(e) => e.currentTarget.style.opacity = 0}>
                     <FaCamera color="#fff" />
                   </div>
                 </div>
               </label>
               <input id="avatar-upload" type="file" accept="image/*" hidden onChange={handlePhotoChange} />
-              <h2 style={{ fontSize: '1.4rem', color: 'var(--text-primary)' }}>{userData.nome}</h2>
+              <h2 style={{ fontSize: '1.5rem', color: 'var(--text-primary)', margin: 0 }}>{userData.nome}</h2>
             </div>
 
-            <form className={styles.profileForm} onSubmit={handleSaveProfile}>
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', textAlign: 'left' }}>
-                <label style={{ color: 'var(--text-primary)' }}>Email</label>
-                <input 
-                  type="email" 
-                  value={userData.email} 
-                  onChange={(e) => setUserData({...userData, email: e.target.value})}
-                  style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '5px', textAlign: 'left', marginTop: '10px' }}>
-                <label style={{ color: 'var(--text-primary)' }}>Telefone</label>
-                <input 
-                  type="text" 
-                  value={userData.telefone} 
-                  onChange={(e) => setUserData({...userData, telefone: e.target.value})}
-                  style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '15px', alignItems: 'flex-end', marginTop: '15px' }}>
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '5px', textAlign: 'left' }}>
-                  <label style={{ color: 'var(--text-primary)' }}>ID de Usuário</label>
-                  <input type="text" value={userData.id} readOnly style={{ padding: '10px', borderRadius: '8px', border: '1px solid #ddd', backgroundColor: '#f9f9f9', color: '#666' }} />
-                </div>
-                <button type="button" onClick={handlePasswordToggle} className={styles.btnCancel} style={{ height: '42px', padding: '0 15px' }}>
-                  {isChangingPassword ? 'Cancelar' : 'Trocar senha'}
-                </button>
-              </div>
-
-              {isChangingPassword && (
-                <div style={{ display: 'flex', gap: '10px', marginTop: '10px', animation: 'fadeIn 0.3s' }}>
-                  <input 
-                    type="password" 
-                    placeholder="Nova senha" 
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    style={{ flex: 1, padding: '10px', borderRadius: '8px', border: '2px solid var(--primary-blue)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
-                    autoFocus
-                  />
-                  <button type="button" onClick={handlePasswordConfirm} className={styles.btnConfirm} style={{ width: 'auto', padding: '0 15px' }}>
-                    Confirmar
-                  </button>
-                </div>
-              )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '0 10px' }}>
               
-              <button type="submit" className={styles.btnConfirm} style={{ marginTop: '25px', width: '100%' }}>
-                Salvar Alterações
-              </button>
-            </form>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderBottom: '1px solid var(--border-color, #eee)', paddingBottom: '10px' }}>
+                <div style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', padding: '10px', borderRadius: '8px', color: 'var(--primary-blue)' }}>
+                  <FaEnvelope size={18} />
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 2px 0' }}>Email de Acesso</p>
+                  <p style={{ fontSize: '1rem', color: 'var(--text-primary)', margin: 0, fontWeight: '500' }}>{userData.email}</p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderBottom: '1px solid var(--border-color, #eee)', paddingBottom: '10px' }}>
+                <div style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', padding: '10px', borderRadius: '8px', color: 'var(--primary-blue)' }}>
+                  <FaBriefcase size={18} />
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 2px 0' }}>Especialidade / Cargo</p>
+                  <p style={{ fontSize: '1rem', color: 'var(--text-primary)', margin: 0, fontWeight: '500' }}>{userData.cargo}</p>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', gap: '15px', paddingBottom: '10px' }}>
+                <div style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', padding: '10px', borderRadius: '8px', color: 'var(--primary-blue)' }}>
+                  <FaIdBadge size={18} />
+                </div>
+                <div style={{ textAlign: 'left' }}>
+                  <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: '0 0 2px 0' }}>ID do Sistema</p>
+                  <p style={{ fontSize: '1.1rem', color: 'var(--primary-blue)', margin: 0, fontWeight: 'bold', letterSpacing: '1px' }}>#{userData.id}</p>
+                </div>
+              </div>
+
+              <div style={{ borderTop: '1px solid var(--border-color, #eee)', paddingTop: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                
+                <button type="button" onClick={handlePasswordToggle} className={styles.btnCancel} style={{ padding: '10px 25px', margin: 0, borderRadius: '20px', fontWeight: 'bold' }}>
+                  {isChangingPassword ? 'Cancelar Alteração' : 'Mudar Senha de Acesso'}
+                </button>
+
+                {/* --- MUDANÇA 3: Adição do Input da Senha Atual --- */}
+                {isChangingPassword && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '15px', width: '100%', animation: 'fadeIn 0.3s' }}>
+                    <input 
+                      type="password" 
+                      placeholder="Digite sua senha atual..." 
+                      value={currentPassword}
+                      onChange={(e) => setCurrentPassword(e.target.value)}
+                      style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', background: 'var(--bg-card)', color: 'var(--text-primary)', textAlign: 'center' }}
+                      autoFocus
+                    />
+                    <input 
+                      type="password" 
+                      placeholder="Crie uma nova senha..." 
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                      style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '2px solid var(--primary-blue)', background: 'var(--bg-card)', color: 'var(--text-primary)', textAlign: 'center' }}
+                    />
+                    <button 
+                      type="button" 
+                      onClick={handlePasswordConfirm} 
+                      className={styles.btnConfirm} 
+                      style={{ width: '100%', padding: '12px' }}
+                      disabled={isLoadingPassword}
+                    >
+                      {isLoadingPassword ? 'Verificando e Salvando...' : 'Confirmar Nova Senha'}
+                    </button>
+                  </div>
+                )}
+              </div>
+
+            </div>
           </div>
         </div>
       )}
