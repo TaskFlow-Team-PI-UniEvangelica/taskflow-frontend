@@ -1,140 +1,114 @@
 import React, { useState, useEffect } from 'react';
 import styles from './Dashboard.module.css';
 import { useNavigate } from 'react-router-dom';
-import { FaCheckCircle, FaSave, FaKey, FaTimes } from 'react-icons/fa'; 
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [userName, setUserName] = useState("Administrador");
+  const [userName, setUserName] = useState("Carregando...");
+  const [tasks, setTasks] = useState([]);
   
-  // ESTADOS PARA OS CONTADORES DINÂMICOS
   const [stats, setStats] = useState({
-    concluidas: 0,
-    pendentes: 0,
-    atrasadas: 0,
-    andamento: 0
+    concluidas: 0, pendentes: 0, atrasadas: 0, andamento: 0
   });
 
-  const [toast, setToast] = useState({ show: false, message: '', icon: null });
-  const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-  const [newPassword, setNewPassword] = useState('');
+  useEffect(() => {
+    const fetchUserProfile = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return navigate('/');
 
-  // FUNÇÃO PARA CALCULAR ESTATÍSTICAS REAIS
-  const atualizarEstatisticas = () => {
-    // Busca as demandas salvas no localStorage
-    const demandasSalvas = JSON.parse(localStorage.getItem('demandas_coletivas') || '[]');
+      try {
+        const response = await fetch('http://localhost:8080/user/me', {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data = await response.json();
+          setUserName(data.nome ? data.nome.split(' ')[0] : "Usuário");
+        }
+      } catch (error) {
+        console.error("Erro ao buscar perfil:", error);
+      }
+    };
+
+    const fetchTasks = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      try {
+        const response = await fetch('http://localhost:8080/task', {
+          method: 'GET',
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        
+        if (response.ok) {
+          const data = await response.json();
+          setTasks(data);
+          atualizarEstatisticas(data);
+        }
+      } catch (error) {
+        console.error("Erro ao buscar tarefas:", error);
+      }
+    };
+
+    fetchUserProfile();
+    fetchTasks();
+  }, [navigate]);
+
+  const parseData = (prazo) => {
+    if (!prazo) return new Date(); 
+    if (Array.isArray(prazo)) {
+      return new Date(prazo[0], prazo[1] - 1, prazo[2]); 
+    }
+    return new Date(prazo + "T00:00:00"); 
+  };
+
+  const atualizarEstatisticas = (listaDeTarefas) => {
     const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0); // Zera as horas para comparação justa de datas
+    hoje.setHours(0, 0, 0, 0); 
 
     let contadores = { concluidas: 0, pendentes: 0, atrasadas: 0, andamento: 0 };
 
-    demandasSalvas.forEach(tarefa => {
-      const dataPrazo = new Date(tarefa.prazo);
-      
-      if (tarefa.status === 'concluida') {
-        contadores.concluidas++;
-      } else {
-        // Lógica para Atrasadas vs Pendentes (TPA)
-        if (dataPrazo < hoje) {
-          contadores.atrasadas++;
+    if (Array.isArray(listaDeTarefas)) {
+      listaDeTarefas.forEach(tarefa => {
+        const dataPrazo = parseData(tarefa.prazo);
+        const statusNormalizado = String(tarefa.status).toLowerCase(); 
+        
+        if (statusNormalizado === 'concluida') {
+          contadores.concluidas++;
+        } else if (statusNormalizado === 'em_andamento') {
+          contadores.andamento++;
         } else {
-          contadores.pendentes++;
+          if (dataPrazo < hoje) {
+            contadores.atrasadas++;
+          } else {
+            contadores.pendentes++;
+          }
         }
-      }
-    });
+      });
+    }
 
     setStats(contadores);
   };
 
-  useEffect(() => {
-    setUserName("Administrador");
-    atualizarEstatisticas();
-
-    // Listener para atualizar o Dashboard instantaneamente quando uma tarefa for criada na aba Equipes
-    window.addEventListener('storage', atualizarEstatisticas);
-    return () => window.removeEventListener('storage', atualizarEstatisticas);
-  }, []);
-
-  const showToast = (message, type) => {
-    const icon = type === 'save' ? <FaSave /> : <FaKey />;
-    setToast({ show: true, message, icon });
-    setTimeout(() => setToast({ show: false, message: '', icon: null }), 3000);
-  };
-
-  const handleSaveProfile = () => {
-    showToast("Perfil atualizado com sucesso!", "save");
-    setIsProfileOpen(false);
-  };
-
-  const handlePasswordConfirm = () => {
-    if (newPassword.length > 0) {
-      showToast("Senha alterada com segurança!", "password");
-      setIsChangingPassword(false);
-      setNewPassword('');
-    }
+  // Cores injetadas diretamente (Verde, Amarelo, Vermelho, Azul)
+  const getCorDaBolinha = (status, prazo) => {
+    const statusNormalizado = String(status).toLowerCase();
+    if (statusNormalizado === 'concluida') return '#10b981'; 
+    if (statusNormalizado === 'em_andamento') return '#f59e0b'; 
+    
+    const dataPrazo = parseData(prazo);
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+    
+    if (dataPrazo < hoje) return '#ef4444'; // Atrasada fica vermelha
+    return 'var(--primary-blue)'; // Pendente em dia fica azul
   };
 
   return (
     <div className={styles.container}>
       
-      {toast.show && (
-        <div className={styles.toastContainer}>
-          <div className={styles.toastCard}>
-            <span className={styles.toastIcon}>{toast.icon}</span>
-            <div className={styles.toastText}>
-              <strong>Sucesso</strong>
-              <span>{toast.message}</span>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {isProfileOpen && (
-        <div className={styles.modalOverlay}>
-          <div className={styles.modalContent}>
-            <button className={styles.closeBtn} onClick={() => setIsProfileOpen(false)}><FaTimes /></button>
-            <h2 className={styles.modalTitle}>Editar Perfil</h2>
-            
-            <div className={styles.profileFields}>
-              <label>Nome</label>
-              <input type="text" defaultValue="Wanderlay Silva Neto" />
-              
-              <label>Email</label>
-              <input type="email" defaultValue="wanderlay@exemplo.com" />
-              
-              <div className={styles.row}>
-                <button 
-                  className={styles.passwordTrigger} 
-                  onClick={() => setIsChangingPassword(!isChangingPassword)}
-                >
-                  Trocar senha
-                </button>
-              </div>
-
-              {isChangingPassword && (
-                <div className={styles.passwordInPlace}>
-                  <input 
-                    type="password" 
-                    placeholder="Digite a nova senha" 
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    autoFocus
-                  />
-                  <button onClick={handlePasswordConfirm} className={styles.confirmPassBtn}>Confirmar</button>
-                </div>
-              )}
-            </div>
-
-            <button className={styles.saveProfileBtn} onClick={handleSaveProfile}>
-              Salvar Alterações
-            </button>
-          </div>
-        </div>
-      )}
-
-      <h1 className={styles.title} style={{ marginBottom: '40px' }} onClick={() => setIsProfileOpen(true)}>
-        Bem-vindo,<br />{userName} !
+      <h1 className={styles.title} style={{ marginBottom: '40px' }}>
+        Bem-vindo,<br />{userName}!
       </h1>
 
       <section className={styles.statsGrid}>
@@ -158,10 +132,44 @@ export default function Dashboard() {
 
       <section className={styles.tasksSection} style={{ marginTop: '40px' }}>
         <div className={styles.tasksHeader}>
-          <h2 className={styles.tasksTitle}>Tarefas Recentes</h2>
+          <h2 className={styles.tasksTitle}>Todas as Tarefas</h2>
           <button className={styles.createBtn} onClick={() => navigate('/tasks')}>
             + Criar Tarefa
           </button>
+        </div>
+
+        {/* --- ADICIONADO ROLAGEM INFINITA AQUI (maxHeight e overflowY) --- */}
+        <div className={styles.tasksTable} style={{ maxHeight: '450px', overflowY: 'auto', paddingRight: '10px' }}>
+          {!Array.isArray(tasks) || tasks.length === 0 ? (
+            <p style={{ color: 'var(--text-secondary)' }}>Nenhuma tarefa cadastrada ainda.</p>
+          ) : (
+            // Removi o .slice() - Agora lista TODAS as tarefas com scroll
+            tasks.map((task) => (
+              <div key={task.id} className={styles.taskRow} style={{ marginBottom: '10px' }}>
+                <div className={styles.taskMainInfo}>
+                  {/* Bolinha com cor dinâmica */}
+                  <div className={styles.statusIndicator} style={{ backgroundColor: getCorDaBolinha(task.status, task.prazo), width: '12px', height: '12px', borderRadius: '50%' }}></div>
+                  <div>
+                    <strong>{task.titulo}</strong>
+                    <p>Status: {String(task.status).replace('_', ' ').toUpperCase()}</p>
+                  </div>
+                </div>
+                
+                <div className={styles.taskDeadline}>
+                  {parseData(task.prazo).toLocaleDateString('pt-BR')}
+                  {parseData(task.prazo) < new Date(new Date().setHours(0,0,0,0)) && String(task.status).toLowerCase() !== 'concluida' && (
+                    <span className={styles.overdueBadge} style={{ marginLeft: '10px' }}>Atrasada</span>
+                  )}
+                </div>
+
+                <div>
+                  <span className={`${styles.priorityTag} ${styles[String(task.prioridade).toLowerCase()]}`}>
+                    {task.prioridade}
+                  </span>
+                </div>
+              </div>
+            ))
+          )}
         </div>
       </section>
     </div>

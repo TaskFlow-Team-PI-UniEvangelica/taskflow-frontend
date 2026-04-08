@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import styles from './DashboardLayout.module.css';
-import { FaChartPie, FaTasks, FaUsers, FaSignOutAlt, FaTimes, FaMoon, FaSun, FaSave, FaKey, FaCamera, FaIdBadge, FaEnvelope, FaBriefcase } from 'react-icons/fa';
+import { FaChartPie, FaTasks, FaUsers, FaSignOutAlt, FaTimes, FaMoon, FaSun, FaSave, FaKey, FaCamera, FaIdBadge, FaEnvelope, FaBriefcase, FaEdit } from 'react-icons/fa';
 import { useTheme } from '../../context/ThemeContext';
 
 export default function DashboardLayout({ children }) {
@@ -169,8 +169,12 @@ export default function DashboardLayout({ children }) {
             <FaChartPie size={20} />
           </Link>
           <Link to="/tasks" className={`${styles.menuItem} ${isActive('/tasks') ? styles.active : ''}`}>
-            <span>Tarefas</span>
+            <span>Criar Tarefas</span>
             <FaTasks size={20} />
+          </Link>
+          <Link to="/edit-tasks" className={`${styles.menuItem} ${isActive('/edit-tasks') ? styles.active : ''}`}>
+            <span>Editar Tarefas</span>
+            <FaEdit size={20} /> 
           </Link>
           <Link to="/teams" className={`${styles.menuItem} ${isActive('/teams') ? styles.active : ''}`}>
             <span>Equipe</span>

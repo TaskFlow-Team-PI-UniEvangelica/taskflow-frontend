@@ -5,7 +5,8 @@ import LoginForm from './components/LoginForm/LoginForm';
 import RegisterForm from './components/RegisterForm/RegisterForm';
 import DashboardLayout from './components/DashboardLayout/DashboardLayout';
 import Dashboard from './pages/Dashboard/Dashboard';
-import Tasks from './pages/Tasks/Tasks'; 
+import Tasks from './pages/Tasks/Tasks';
+import EditTasks from './pages/Tasks/EditTasks';
 import Teams from './pages/Teams/Teams';
 import ProtectedRoute from './components/AuthLayout/ProtectedRoute'; 
 
@@ -27,7 +28,6 @@ function App() {
           </AuthLayout>
         } />
 
-        {/* --- MUDANÇA 2: Envolvendo as rotas privadas com o ProtectedRoute --- */}
         <Route path="/dashboard" element={
           <ProtectedRoute>
             <DashboardLayout><Dashboard /></DashboardLayout>
@@ -37,6 +37,13 @@ function App() {
         <Route path="/tasks" element={
           <ProtectedRoute>
             <DashboardLayout><Tasks /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+
+        {/* --- ROTA PROTEGIDA DE EDIÇÃO --- */}
+        <Route path="/edit-tasks" element={
+          <ProtectedRoute>
+            <DashboardLayout><EditTasks /></DashboardLayout>
           </ProtectedRoute>
         } />
 
