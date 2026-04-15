@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import styles from './DashboardLayout.module.css';
-import { FaChartPie, FaTasks, FaUsers, FaSignOutAlt, FaTimes, FaMoon, FaSun, FaSave, FaKey, FaCamera, FaIdBadge, FaEnvelope, FaBriefcase, FaEdit } from 'react-icons/fa';
+// --- MUDANÇA: FaTrello adicionado na lista de importações abaixo ---
+import { FaChartPie, FaTasks, FaUsers, FaSignOutAlt, FaTimes, FaMoon, FaSun, FaSave, FaKey, FaCamera, FaIdBadge, FaEnvelope, FaBriefcase, FaEdit, FaTrello } from 'react-icons/fa';
 import { useTheme } from '../../context/ThemeContext';
 
 export default function DashboardLayout({ children }) {
 
   const [isChangingPassword, setIsChangingPassword] = useState(false);
-  
-  // --- MUDANÇA 1: Adicionado estado para a senha atual ---
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   
@@ -93,10 +92,9 @@ export default function DashboardLayout({ children }) {
   const handlePasswordToggle = () => {
     setIsChangingPassword(!isChangingPassword);
     setNewPassword(''); 
-    setCurrentPassword(''); // Limpa a senha atual ao cancelar também
+    setCurrentPassword(''); 
   };
 
-  // --- MUDANÇA 2: Função atualizada para enviar o DTO e usar o PATCH ---
   const handlePasswordConfirm = async () => {
     if (currentPassword.trim() === "" || newPassword.trim() === "") {
       showNotification("Preencha a senha atual e a nova senha.", "error");
@@ -113,7 +111,6 @@ export default function DashboardLayout({ children }) {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-
         body: JSON.stringify({ 
           senhaAtual: currentPassword,
           novaSenha: newPassword
@@ -126,7 +123,6 @@ export default function DashboardLayout({ children }) {
         setNewPassword('');
         setCurrentPassword('');
       } else if (response.status === 400 || response.status === 403) {
-        // Trata erro de senha atual incorreta retornada pelo Spring Boot
         showNotification("Senha atual incorreta ou dados inválidos.", "error");
       } else {
         showNotification("Erro ao atualizar a senha.", "error");
@@ -168,6 +164,13 @@ export default function DashboardLayout({ children }) {
             <span>Dashboard</span>
             <FaChartPie size={20} />
           </Link>
+
+          {/* --- AQUI ESTÁ A NOVA OPÇÃO DO KANBAN --- */}
+          <Link to="/kanban" className={`${styles.menuItem} ${isActive('/kanban') ? styles.active : ''}`}>
+            <span>Quadro Kanban</span>
+            <FaTrello size={20} />
+          </Link>
+
           <Link to="/tasks" className={`${styles.menuItem} ${isActive('/tasks') ? styles.active : ''}`}>
             <span>Criar Tarefas</span>
             <FaTasks size={20} />
@@ -283,7 +286,6 @@ export default function DashboardLayout({ children }) {
                   {isChangingPassword ? 'Cancelar Alteração' : 'Mudar Senha de Acesso'}
                 </button>
 
-                {/* --- MUDANÇA 3: Adição do Input da Senha Atual --- */}
                 {isChangingPassword && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '15px', width: '100%', animation: 'fadeIn 0.3s' }}>
                     <input 
