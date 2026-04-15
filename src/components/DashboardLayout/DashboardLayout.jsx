@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import styles from './DashboardLayout.module.css';
-import { FaChartPie, FaTasks, FaUsers, FaSignOutAlt, FaTimes, FaMoon, FaSun, FaSave, FaKey, FaCamera, FaIdBadge, FaEnvelope, FaBriefcase, FaEdit } from 'react-icons/fa';
+// --- MUDANÇA: FaTrello adicionado na lista de importações abaixo ---
+import { FaChartPie, FaTasks, FaUsers, FaSignOutAlt, FaTimes, FaMoon, FaSun, FaSave, FaKey, FaCamera, FaIdBadge, FaEnvelope, FaBriefcase, FaEdit, FaTrello } from 'react-icons/fa';
 import { useTheme } from '../../context/ThemeContext';
 import PasswordInput from '../UI/PasswordInput';
 
@@ -97,7 +98,6 @@ export default function DashboardLayout({ children }) {
     setCurrentPassword(''); // Limpa a senha atual ao cancelar também
   };
 
-  // --- MUDANÇA 2: Função atualizada para enviar o DTO e usar o PATCH ---
   const handlePasswordConfirm = async () => {
     if (currentPassword.trim() === "" || newPassword.trim() === "") {
       showNotification("Preencha a senha atual e a nova senha.", "error");
@@ -126,7 +126,6 @@ export default function DashboardLayout({ children }) {
         setNewPassword('');
         setCurrentPassword('');
       } else if (response.status === 400 || response.status === 403) {
-        // Trata erro de senha atual incorreta retornada pelo Spring Boot
         showNotification("Senha atual incorreta ou dados inválidos.", "error");
       } else {
         showNotification("Erro ao atualizar a senha.", "error");
@@ -168,6 +167,13 @@ export default function DashboardLayout({ children }) {
             <span>Dashboard</span>
             <FaChartPie size={20} />
           </Link>
+
+          {/* --- AQUI ESTÁ A NOVA OPÇÃO DO KANBAN --- */}
+          <Link to="/kanban" className={`${styles.menuItem} ${isActive('/kanban') ? styles.active : ''}`}>
+            <span>Quadro Kanban</span>
+            <FaTrello size={20} />
+          </Link>
+
           <Link to="/tasks" className={`${styles.menuItem} ${isActive('/tasks') ? styles.active : ''}`}>
             <span>Criar Tarefas</span>
             <FaTasks size={20} />
