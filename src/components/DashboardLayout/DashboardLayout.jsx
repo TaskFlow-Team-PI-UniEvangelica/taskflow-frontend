@@ -4,27 +4,30 @@ import styles from './DashboardLayout.module.css';
 // --- MUDANÇA: FaTrello adicionado na lista de importações abaixo ---
 import { FaChartPie, FaTasks, FaUsers, FaSignOutAlt, FaTimes, FaMoon, FaSun, FaSave, FaKey, FaCamera, FaIdBadge, FaEnvelope, FaBriefcase, FaEdit, FaTrello } from 'react-icons/fa';
 import { useTheme } from '../../context/ThemeContext';
+import PasswordInput from '../UI/PasswordInput';
 
 export default function DashboardLayout({ children }) {
 
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+
+  // --- MUDANÇA 1: Adicionado estado para a senha atual ---
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  
+
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [isLoadingPassword, setIsLoadingPassword] = useState(false);
-  
+
   const [profileImage, setProfileImage] = useState(localStorage.getItem('user_photo') || null);
-  
-  const { theme, toggleTheme } = useTheme(); 
+
+  const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
-  const location = useLocation(); 
+  const location = useLocation();
 
   const [userData, setUserData] = useState({
     nome: "Carregando...",
     email: "carregando...",
-    cargo: "carregando...", 
+    cargo: "carregando...",
     id: "..."
   });
 
@@ -54,7 +57,7 @@ export default function DashboardLayout({ children }) {
           setUserData({
             nome: data.nome || "Usuário",
             email: data.email || "Sem email",
-            cargo: data.cargo || "Sem cargo", 
+            cargo: data.cargo || "Sem cargo",
             id: data.id || "N/A"
           });
         } else if (response.status === 401 || response.status === 403) {
@@ -66,7 +69,7 @@ export default function DashboardLayout({ children }) {
     };
 
     buscarDadosDoUsuario();
-  }, [navigate]); 
+  }, [navigate]);
 
   const handlePhotoChange = (e) => {
     const file = e.target.files[0];
@@ -75,7 +78,7 @@ export default function DashboardLayout({ children }) {
       reader.onloadend = () => {
         const base64String = reader.result;
         setProfileImage(base64String);
-        localStorage.setItem('user_photo', base64String); 
+        localStorage.setItem('user_photo', base64String);
         showNotification("Foto de perfil atualizada!", "save");
       };
       reader.readAsDataURL(file);
@@ -91,8 +94,8 @@ export default function DashboardLayout({ children }) {
 
   const handlePasswordToggle = () => {
     setIsChangingPassword(!isChangingPassword);
-    setNewPassword(''); 
-    setCurrentPassword(''); 
+    setNewPassword('');
+    setCurrentPassword(''); // Limpa a senha atual ao cancelar também
   };
 
   const handlePasswordConfirm = async () => {
@@ -100,18 +103,18 @@ export default function DashboardLayout({ children }) {
       showNotification("Preencha a senha atual e a nova senha.", "error");
       return;
     }
-    
+
     setIsLoadingPassword(true);
     try {
       const token = localStorage.getItem('token');
-      
+
       const response = await fetch('http://localhost:8080/user/me/password', {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           senhaAtual: currentPassword,
           novaSenha: newPassword
         })
@@ -138,7 +141,7 @@ export default function DashboardLayout({ children }) {
 
   return (
     <div className={styles.container}>
-      
+
       {toast.show && (
         <div className={styles.toastContainer}>
           <div className={styles.toastCard}>
@@ -177,7 +180,7 @@ export default function DashboardLayout({ children }) {
           </Link>
           <Link to="/edit-tasks" className={`${styles.menuItem} ${isActive('/edit-tasks') ? styles.active : ''}`}>
             <span>Editar Tarefas</span>
-            <FaEdit size={20} /> 
+            <FaEdit size={20} />
           </Link>
           <Link to="/teams" className={`${styles.menuItem} ${isActive('/teams') ? styles.active : ''}`}>
             <span>Equipe</span>
@@ -193,14 +196,14 @@ export default function DashboardLayout({ children }) {
 
       <main className={styles.mainContent}>
         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '20px' }}>
-          
+
           <div className={styles.themeToggle} onClick={toggleTheme} style={{ cursor: 'pointer', marginRight: '20px' }}>
             {theme === 'dark' ? <FaMoon size={22} color="#fff" /> : <FaSun size={22} color="#f59e0b" />}
           </div>
 
           <div onClick={() => setShowProfileModal(true)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
             <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
-              {userData.nome.split(' ')[0]} 
+              {userData.nome.split(' ')[0]}
             </span>
             <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#ccc', overflow: 'hidden', border: '2px solid var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               {profileImage ? <img src={profileImage} alt="Nav" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
@@ -210,7 +213,7 @@ export default function DashboardLayout({ children }) {
 
         {children}
       </main>
-    
+
       {showLogoutModal && (
         <div className={styles.modalOverlay}>
           <div className={styles.modalBox}>
@@ -230,7 +233,7 @@ export default function DashboardLayout({ children }) {
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
               <FaTimes onClick={() => { setShowProfileModal(false); setIsChangingPassword(false); }} style={{ cursor: 'pointer', color: 'var(--text-secondary)' }} />
             </div>
-            
+
             <div className={styles.profileHeader} style={{ marginBottom: '30px' }}>
               <label htmlFor="avatar-upload" style={{ cursor: 'pointer', position: 'relative' }}>
                 <div className={styles.avatarCircle} style={{ position: 'relative', overflow: 'hidden', width: '90px', height: '90px', borderRadius: '50%', border: '3px solid var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 15px auto' }}>
@@ -249,7 +252,7 @@ export default function DashboardLayout({ children }) {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', padding: '0 10px' }}>
-              
+
               <div style={{ display: 'flex', alignItems: 'center', gap: '15px', borderBottom: '1px solid var(--border-color, #eee)', paddingBottom: '10px' }}>
                 <div style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', padding: '10px', borderRadius: '8px', color: 'var(--primary-blue)' }}>
                   <FaEnvelope size={18} />
@@ -281,32 +284,36 @@ export default function DashboardLayout({ children }) {
               </div>
 
               <div style={{ borderTop: '1px solid var(--border-color, #eee)', paddingTop: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                
+
                 <button type="button" onClick={handlePasswordToggle} className={styles.btnCancel} style={{ padding: '10px 25px', margin: 0, borderRadius: '20px', fontWeight: 'bold' }}>
                   {isChangingPassword ? 'Cancelar Alteração' : 'Mudar Senha de Acesso'}
                 </button>
 
                 {isChangingPassword && (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '15px', width: '100%', animation: 'fadeIn 0.3s' }}>
-                    <input 
-                      type="password" 
-                      placeholder="Digite sua senha atual..." 
+
+                    {/* Substituição pelos componentes PasswordInput */}
+                    <PasswordInput
+                      placeholder="Digite sua senha atual..."
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
-                      style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #ddd', background: 'var(--bg-card)', color: 'var(--text-primary)', textAlign: 'center' }}
+                      buttonStyle={{ top: '35%', transform: 'translateY(-50%)', bottom: 'auto' }}
+                      style={{ width: '100%', padding: '12px', paddingRight: '40px', borderRadius: '8px', border: '1px solid #ddd', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
                       autoFocus
                     />
-                    <input 
-                      type="password" 
-                      placeholder="Crie uma nova senha..." 
+
+                    <PasswordInput
+                      placeholder="Crie uma nova senha..."
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '2px solid var(--primary-blue)', background: 'var(--bg-card)', color: 'var(--text-primary)', textAlign: 'center' }}
+                      buttonStyle={{ top: '35%', transform: 'translateY(-50%)', bottom: 'auto' }}
+                      style={{ width: '100%', padding: '12px', paddingRight: '40px', borderRadius: '8px', border: '2px solid var(--primary-blue)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
                     />
-                    <button 
-                      type="button" 
-                      onClick={handlePasswordConfirm} 
-                      className={styles.btnConfirm} 
+
+                    <button
+                      type="button"
+                      onClick={handlePasswordConfirm}
+                      className={styles.btnConfirm}
                       style={{ width: '100%', padding: '12px' }}
                       disabled={isLoadingPassword}
                     >
@@ -315,7 +322,6 @@ export default function DashboardLayout({ children }) {
                   </div>
                 )}
               </div>
-
             </div>
           </div>
         </div>
