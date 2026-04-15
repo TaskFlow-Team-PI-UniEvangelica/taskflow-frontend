@@ -113,20 +113,20 @@ export default function Dashboard() {
 
       <section className={styles.statsGrid}>
         <div className={styles.statWrapper}>
-          <span className={styles.statTitle}>Concluídas</span>
-          <div className={`${styles.statCard} ${styles.cardGreen}`}>{stats.concluidas}</div>
-        </div>
-        <div className={styles.statWrapper}>
           <span className={styles.statTitle}>Pendentes</span>
           <div className={`${styles.statCard} ${styles.cardBlue}`}>{stats.pendentes}</div>
+        </div>
+        <div className={styles.statWrapper}>
+          <span className={styles.statTitle}>Em Andamento</span>
+          <div className={`${styles.statCard} ${styles.cardYellow}`}>{stats.andamento}</div>
         </div>
         <div className={styles.statWrapper}>
           <span className={styles.statTitle}>Atrasadas</span>
           <div className={`${styles.statCard} ${styles.cardOrange}`}>{stats.atrasadas}</div>
         </div>
         <div className={styles.statWrapper}>
-          <span className={styles.statTitle}>Em Andamento</span>
-          <div className={`${styles.statCard} ${styles.cardYellow}`}>{stats.andamento}</div>
+          <span className={styles.statTitle}>Concluídas</span>
+          <div className={`${styles.statCard} ${styles.cardGreen}`}>{stats.concluidas}</div>
         </div>
       </section>
 
