@@ -5,6 +5,7 @@ o sistema de autenticação será feito e incorporado ao front e foi feito com r
 
 ## Estrutura de pastas
 
+```
 taskflow-frontend/
 ├── public/                 # Arquivos estáticos e globais (imagens de fundo, ícones padrão).
 ├── src/                    # Código-fonte principal da aplicação React.
@@ -26,7 +27,7 @@ taskflow-frontend/
 ├── .gitignore              # Regras de exclusão de arquivos para o repositório.
 ├── package.json            # Gerenciamento de dependências e scripts de execução.
 └── vite.config.js          # Configurações do empacotador Vite.
-
+```
 
 ## Requisitos para rodar
 - Node.js
