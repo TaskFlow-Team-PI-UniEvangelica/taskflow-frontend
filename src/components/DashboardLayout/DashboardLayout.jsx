@@ -182,10 +182,10 @@ export default function DashboardLayout({ children }) {
             <span>Editar Tarefas</span>
             <FaEdit size={20} />
           </Link>
-          <Link to="/teams" className={`${styles.menuItem} ${isActive('/teams') ? styles.active : ''}`}>
+          {/* <Link to="/teams" className={`${styles.menuItem} ${isActive('/teams') ? styles.active : ''}`}>
             <span>Equipe</span>
             <FaUsers size={20} />
-          </Link>
+          </Link> */}
         </nav>
 
         <div className={`${styles.menuItem} ${styles.logoutBtn}`} onClick={() => setShowLogoutModal(true)}>

@@ -11,6 +11,7 @@ import Teams from './pages/Teams/Teams';
 import ProtectedRoute from './components/AuthLayout/ProtectedRoute'; 
 import Kanban from './pages/Kanban/Kanban'; 
 
+
 function App() {
   const [isReversed, setIsReversed] = useState(false);
   const handleSwap = () => setIsReversed(!isReversed);
@@ -53,12 +54,11 @@ function App() {
           </ProtectedRoute>
         } />
 
-        <Route path="/teams" element={
+        {/* <Route path="/teams" element={
           <ProtectedRoute>
             <DashboardLayout><Teams /></DashboardLayout>
           </ProtectedRoute>
-        } />
-        
+        } /> */}
       </Routes>
     </Router>
   );
