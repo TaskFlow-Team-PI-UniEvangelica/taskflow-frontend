@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import AuthLayout from './components/AuthLayout/AuthLayout';
 import LoginForm from './components/LoginForm/LoginForm';
 import RegisterForm from './components/RegisterForm/RegisterForm';
@@ -10,7 +10,7 @@ import EditTasks from './pages/Tasks/EditTasks';
 import Teams from './pages/Teams/Teams';
 import ProtectedRoute from './components/AuthLayout/ProtectedRoute'; 
 import Kanban from './pages/Kanban/Kanban'; 
-
+import AdminPage from './pages/Admin/AdminPage';   
 
 function App() {
   const [isReversed, setIsReversed] = useState(false);
@@ -19,7 +19,7 @@ function App() {
   return (
     <Router>
       <Routes>
-   
+        {/* ROTA DE AUTENTICAÇÃO */}
         <Route path="/" element={
           <AuthLayout isReversed={isReversed} onSwap={handleSwap}>
             {isReversed ? (
@@ -30,35 +30,45 @@ function App() {
           </AuthLayout>
         } />
 
+        {/* DASHBOARD */}
         <Route path="/dashboard" element={
           <ProtectedRoute>
             <DashboardLayout><Dashboard /></DashboardLayout>
           </ProtectedRoute>
         } />
 
+        {/* KANBAN */}
         <Route path="/kanban" element={
           <ProtectedRoute>
             <DashboardLayout><Kanban /></DashboardLayout>
           </ProtectedRoute>
         } />
 
+        {/* TAREFAS */}
         <Route path="/tasks" element={
           <ProtectedRoute>
             <DashboardLayout><Tasks /></DashboardLayout>
           </ProtectedRoute>
         } />
 
+        {/* EDIÇÃO DE TAREFAS */}
         <Route path="/edit-tasks" element={
           <ProtectedRoute>
             <DashboardLayout><EditTasks /></DashboardLayout>
           </ProtectedRoute>
         } />
 
-        {/* <Route path="/teams" element={
-          <ProtectedRoute>
-            <DashboardLayout><Teams /></DashboardLayout>
+        {/* --- NOVA ROTA DE ADMIN (INTEGRAÇÃO BACKEND) --- */}
+        <Route path="/admin" element={    
+          <ProtectedRoute isAdminOnly={true}>
+            <DashboardLayout><AdminPage /></DashboardLayout>
           </ProtectedRoute>
-        } /> */}
+
+
+        } />
+
+        {/* REDIRECIONAMENTO PADRÃO */}
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </Router>
   );

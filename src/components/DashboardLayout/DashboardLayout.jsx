@@ -6,6 +6,7 @@ import { FaChartPie, FaTasks, FaUsers, FaSignOutAlt, FaTimes, FaMoon, FaSun, FaS
 import { useTheme } from '../../context/ThemeContext';
 import PasswordInput from '../UI/PasswordInput';
 
+
 export default function DashboardLayout({ children }) {
 
   const [isChangingPassword, setIsChangingPassword] = useState(false);
@@ -186,6 +187,11 @@ export default function DashboardLayout({ children }) {
             <span>Equipe</span>
             <FaUsers size={20} />
           </Link> */}
+
+          <Link to="/admin" className={`${styles.menuItem} ${isActive('/admin') ? styles.active : ''}`}>
+            <span>Painel Admin</span>
+            <FaUsers size={20} /> {/* Use FaUserShield se preferir */}
+          </Link>
         </nav>
 
         <div className={`${styles.menuItem} ${styles.logoutBtn}`} onClick={() => setShowLogoutModal(true)}>
