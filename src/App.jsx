@@ -9,6 +9,7 @@ import Tasks from './pages/Tasks/Tasks';
 import EditTasks from './pages/Tasks/EditTasks';
 import Teams from './pages/Teams/Teams';
 import ProtectedRoute from './components/AuthLayout/ProtectedRoute'; 
+import Kanban from './pages/Kanban/Kanban'; 
 
 function App() {
   const [isReversed, setIsReversed] = useState(false);
@@ -34,13 +35,18 @@ function App() {
           </ProtectedRoute>
         } />
 
+        <Route path="/kanban" element={
+          <ProtectedRoute>
+            <DashboardLayout><Kanban /></DashboardLayout>
+          </ProtectedRoute>
+        } />
+
         <Route path="/tasks" element={
           <ProtectedRoute>
             <DashboardLayout><Tasks /></DashboardLayout>
           </ProtectedRoute>
         } />
 
-        {/* --- ROTA PROTEGIDA DE EDIÇÃO --- */}
         <Route path="/edit-tasks" element={
           <ProtectedRoute>
             <DashboardLayout><EditTasks /></DashboardLayout>
