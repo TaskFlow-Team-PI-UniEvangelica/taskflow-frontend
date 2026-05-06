@@ -297,7 +297,6 @@ export default function DashboardLayout({ children }) {
                       placeholder="Digite sua senha atual..."
                       value={currentPassword}
                       onChange={(e) => setCurrentPassword(e.target.value)}
-                      buttonStyle={{ top: '35%', transform: 'translateY(-50%)', bottom: 'auto' }}
                       style={{ width: '100%', padding: '12px', paddingRight: '40px', borderRadius: '8px', border: '1px solid #ddd', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
                       autoFocus
                     />
@@ -306,7 +305,6 @@ export default function DashboardLayout({ children }) {
                       placeholder="Crie uma nova senha..."
                       value={newPassword}
                       onChange={(e) => setNewPassword(e.target.value)}
-                      buttonStyle={{ top: '35%', transform: 'translateY(-50%)', bottom: 'auto' }}
                       style={{ width: '100%', padding: '12px', paddingRight: '40px', borderRadius: '8px', border: '2px solid var(--primary-blue)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
                     />
 

@@ -2,11 +2,11 @@
 
 # sobe o ambiente de Desenvolvimento (com Vite e Hot Reload)
 run-dev:
-	docker compose -f docker-compose-dev.yml up -d --build
+	docker compose -f docker-compose-dev.yml up --build
 
 # sobe o ambiente de Produção (com Nginx)
 run:
-	docker compose up -d --build
+	docker compose up --build
 
 # desliga e remove os containers de qualquer ambiente
 down:
