@@ -124,7 +124,7 @@ Escolha o ambiente que deseja subir a aplicação.
 ### Ambiente de desenvolvimento.
 - Rodar em ambiente de desenvolvimento usando Vite:
    ```
-   docker compose -f docker-compose-dev.yml up -d --build
+   docker compose -f docker-compose-dev.yml up --build
    ```
    Acessar a url local: ``` http://localhost:5173 ```
 - Para desligar container de desenvolvimento:
@@ -144,7 +144,7 @@ Escolha o ambiente que deseja subir a aplicação.
 ### Ambiente de produção.
 - Rodar em ambiente de produção usando Nginx:
    ```
-   docker compose up -d --build
+   docker compose up --build
    ```
    Acessar a url local: ``` http://localhost/ ```
 - Para desligar container de produção:
