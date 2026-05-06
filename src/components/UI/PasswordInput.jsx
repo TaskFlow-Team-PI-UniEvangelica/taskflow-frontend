@@ -12,17 +12,16 @@ export default function PasswordInput({ buttonStyle, ...props }) {
                 position: 'absolute',
                 right: '12px',
                 top: '50%', 
-                transform: 'translateY(-50%)', 
+                transform: 'translateY(-50%)', // Agora sim ele puxa só o tamanhinho do ícone pro centro!
                 background: 'transparent',
                 border: 'none',
                 cursor: 'pointer',
                 color: 'var(--primary-blue, #2563eb)',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'center',
+                justifyContent: 'center', 
                 padding: '0',
                 margin: '0',
-                height: '100%',
                 zIndex: 10,
                 ...buttonStyle
             }}
