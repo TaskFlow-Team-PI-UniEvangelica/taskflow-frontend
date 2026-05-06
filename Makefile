@@ -21,7 +21,7 @@ logs-dev:
 logs:
 	docker compose logs -f
 
-# # acessar o terminal no conteiner de dev
+# acessar o terminal no conteiner de dev
 terminal-dev:
 	docker compose -f docker-compose-dev.yml exec taskflow_frontend_dev bash
 
