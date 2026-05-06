@@ -10,8 +10,8 @@ run:
 
 # desliga e remove os containers de qualquer ambiente
 down:
-	docker compose down --remove-orphans
-	docker compose -f docker-compose-dev.yml down --remove-orphans
+	docker compose down
+	docker compose -f docker-compose-dev.yml down
 
 # visualiza os logs do ambiente de dev
 logs-dev:
