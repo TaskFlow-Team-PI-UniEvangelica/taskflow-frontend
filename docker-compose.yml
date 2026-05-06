@@ -1,0 +1,10 @@
+version: '3.8'
+
+services:
+  frontend_prod:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: taskflow_frontend
+    ports:
+      - "8080:8080"
