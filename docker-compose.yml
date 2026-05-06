@@ -1,5 +1,6 @@
 services:
-  frontend_prod:
+  frontend:
+    image: img_taskflow_frontend
     build:
       context: .
       dockerfile: Dockerfile

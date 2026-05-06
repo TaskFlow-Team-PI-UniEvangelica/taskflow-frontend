@@ -23,8 +23,8 @@ logs:
 
 # acessar o terminal no conteiner de dev
 terminal-dev:
-	docker compose -f docker-compose-dev.yml exec taskflow_frontend_dev bash
+	docker exec -it taskflow_frontend_dev bash
 
 # acessar o terminal no conteiner de prod
 terminal:
-	docker compose exec taskflow_frontend bash
+	docker exec -it taskflow_frontend bash

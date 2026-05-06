@@ -137,7 +137,7 @@ Escolha o ambiente que deseja subir a aplicação.
    ```
 - Acessar container de desenvolvimento para executar comandos linux:
    ```
-	docker compose -f docker-compose-dev.yml exec taskflow_frontend_dev bash
+	docker exec -it taskflow_frontend_dev bash
    ```
    Para sair digite ``` exit ``` no terminal.
 
@@ -157,7 +157,7 @@ Escolha o ambiente que deseja subir a aplicação.
    ```
 - Acessar container de produção para executar comandos linux:
    ```
-	docker compose exec taskflow_frontend bash
+	docker exec -it taskflow_frontend bash
    ```
    Para sair digite ``` exit ``` no terminal.
 
