@@ -5,6 +5,12 @@ COPY package*.json ./
 RUN npm install
 
 COPY . .
+
+# recebe variável do yml
+ARG VITE_API_URL
+# injeta ela no ambiente do node
+ENV VITE_API_URL=$VITE_API_URL
+
 RUN npm run build
 
 FROM nginx:stable-bookworm
