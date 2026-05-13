@@ -11,7 +11,7 @@ export default function Kanban() {
   const fetchTasks = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8080/task', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/task`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) setTasks(await response.json());
@@ -56,7 +56,7 @@ export default function Kanban() {
     // Dispara o PATCH pro backend em background
     try {
       const token = localStorage.getItem('token');
-      await fetch(`http://localhost:8080/task/${taskId}/status`, {
+      await fetch(`${import.meta.env.VITE_API_URL}/task/${taskId}/status`, {
         method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json',

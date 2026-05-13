@@ -44,7 +44,7 @@ export default function DashboardLayout({ children }) {
       if (!token) return navigate('/');
 
       try {
-        const response = await fetch('http://localhost:8080/user/me', {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/user/me`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -108,7 +108,7 @@ export default function DashboardLayout({ children }) {
     try {
       const token = localStorage.getItem('token');
 
-      const response = await fetch('http://localhost:8080/user/me/password', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/user/me/password`, {
         method: 'PATCH',
         headers: {
           'Authorization': `Bearer ${token}`,

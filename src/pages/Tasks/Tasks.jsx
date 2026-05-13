@@ -19,7 +19,7 @@ export default function Tasks() {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8080/user', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/user`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) setTeamMembers(await response.json());
@@ -45,7 +45,7 @@ export default function Tasks() {
 
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8080/task', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/task`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

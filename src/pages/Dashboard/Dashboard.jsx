@@ -17,7 +17,7 @@ export default function Dashboard() {
       if (!token) return navigate('/');
 
       try {
-        const response = await fetch('http://localhost:8080/user/me', {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/user/me`, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -35,7 +35,7 @@ export default function Dashboard() {
       if (!token) return;
 
       try {
-        const response = await fetch('http://localhost:8080/task', {
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/task`, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
         });
