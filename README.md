@@ -2,6 +2,11 @@
 Aplicação web desenvolvida para ser a interface visual do sistema Taskflow, permitindo o gerenciamento interativo de usuários, equipes e tarefas (via Kanban). Construída com **React** e **Vite**, a aplicação é totalmente containerizada com **Docker**, garantindo alta estabilidade e separação clara entre os ambientes de desenvolvimento e produção (utilizando Nginx).
 Este repositório atua em conjunto com a Taskflow API e faz parte da execução do Projeto Integrativo e do Projeto de Conclusão de Curso da Universidade Evangélica de Anápolis.
 
+- URL de deploy de testes, cole no navegador para acessar a aplicação sem executar localmente:
+    ```
+    http://124.198.128.120/
+    ```
+
 ## Dependências e Tecnologias Usadas
 
 * **Linguagem:** JavaScript (JSX)
