@@ -2,6 +2,11 @@
 Aplicação web desenvolvida para ser a interface visual do sistema Taskflow, permitindo o gerenciamento interativo de usuários, equipes e tarefas (via Kanban). Construída com **React** e **Vite**, a aplicação é totalmente containerizada com **Docker**, garantindo alta estabilidade e separação clara entre os ambientes de desenvolvimento e produção (utilizando Nginx).
 Este repositório atua em conjunto com a Taskflow API e faz parte da execução do Projeto Integrativo e do Projeto de Conclusão de Curso da Universidade Evangélica de Anápolis.
 
+- URL de deploy de testes, cole no navegador para acessar a aplicação sem executar localmente:
+    ```
+    http://124.198.128.120/
+    ```
+
 ## Dependências e Tecnologias Usadas
 
 * **Linguagem:** JavaScript (JSX)
@@ -48,6 +53,13 @@ taskflow-frontend/
 - Make (Para executar os atalhos apenas Linux)
 - NodeJS (Caso queira executar manualmente)
 
+## Configuração do .env para execução via Docker
+Configuração das variáveis de ambiente pelo arquivo (.env), crie um arquivo chamado .env na raiz do projeto, cole as informações abaixo no arquivo e adicione á url da api
+```
+# adicione a url da api, a padrão local é essa abaixo
+VITE_API_URL=http://localhost:8080
+```
+
 ## Passos para rodar via Linux (Docker + Makefile)
 
 1. **Clone o repositório:**
@@ -58,7 +70,13 @@ Clone o repositório do backend seja usando terminal ou baixando o arquivo ZIP.
    cd taskflow-frontend
    ```
 
-3. **Escolha o ambiente que deseja subir a aplicação:**
+3. **Tenha seu .env configurado:**
+Siga as instruções do tópico anterior para criar o .env da aplicação.
+
+4. **Rode o Backend SpringBoot:**
+Instruções de execução do back esta no README do repositório da API.
+
+5. **Escolha o ambiente que deseja subir a aplicação:**
 Escolha o ambiente que deseja subir a aplicação.
 
 - Garanta que o Docker tenha acesso administrador ao seu sistema.
@@ -72,6 +90,10 @@ Escolha o ambiente que deseja subir a aplicação.
 - Para desligar os containers:
    ```
    make down
+   ```
+- Derruba o container de desenvolvimento e apaga as imagens:
+   ```
+   make clean-dev
    ```
 - Acessar os logs do container de desenvolvimento:
    ```
@@ -93,6 +115,10 @@ Escolha o ambiente que deseja subir a aplicação.
    ```
 	make down
    ```
+- Derruba o container de produção e apaga as imagens:
+   ```
+   make clean
+   ```
 - Acessar os logs do container de produção:
    ```
 	make logs
@@ -103,10 +129,7 @@ Escolha o ambiente que deseja subir a aplicação.
    ```
    Para sair digite ``` exit ``` no terminal.
 
-4. **Rode o Backend SpringBoot:**
-Instruções de execução do back esta no README do repositório do Backend.
-
-5. **Como acessar o Dashboard:** Faça o login com um usuário válido, caso não tenha crie um novo usuário.
+6. **Como acessar o Dashboard:** Faça o login com um usuário válido, caso não tenha crie um novo usuário.
 
 
 ## Passos para rodar via Windows (Docker)
@@ -119,8 +142,15 @@ Clone o repositório do backend seja usando terminal ou baixando o arquivo ZIP.
    cd taskflow-frontend
    ```
 
-3. **Escolha o ambiente que deseja subir a aplicação:**
+3. **Tenha seu .env configurado:**
+Siga as instruções do tópico anterior para criar o .env da aplicação.
+
+4. **Rode o Backend SpringBoot:**
+Instruções de execução do back esta no README do repositório da API.
+
+5. **Escolha o ambiente que deseja subir a aplicação:**
 Escolha o ambiente que deseja subir a aplicação.
+
 ### Ambiente de desenvolvimento.
 - Rodar em ambiente de desenvolvimento usando Vite:
    ```
@@ -130,6 +160,10 @@ Escolha o ambiente que deseja subir a aplicação.
 - Para desligar container de desenvolvimento:
    ```
 	docker compose -f docker-compose-dev.yml down
+   ```
+- Derruba o container de desenvolvimento e apaga as imagens:
+   ```
+   docker compose -f docker-compose-dev.yml down --rmi all
    ```
 - Acessar os logs do container de desenvolvimento:
    ```
@@ -151,6 +185,10 @@ Escolha o ambiente que deseja subir a aplicação.
    ```
 	docker compose down
    ```
+- Derruba o container de produção e apaga as imagens:
+   ```
+   docker compose --rmi all
+   ```
 - Acessar os logs do container de produção:
    ```
 	docker compose logs -f
@@ -161,15 +199,14 @@ Escolha o ambiente que deseja subir a aplicação.
    ```
    Para sair digite ``` exit ``` no terminal.
 
-4. **Rode o Backend SpringBoot:**
-Instruções de execução do back esta no README do repositório do Backend.
-
-5. **Como acessar o Dashboard:** Faça o login com um usuário válido, caso não tenha crie um novo usuário.
+6. **Como acessar o Dashboard:** Faça o login com um usuário válido, caso não tenha crie um novo usuário.
 
 ## Passos para rodar manualmente (Node)
 - Necessário ter o Node instalado no computador.
 
 - Clonar o projeto e entrar no terminal na raiz do projeto.
+
+- Rode o Backend SpringBoot: Instruções de execução do back esta no README do repositório do Backend.
 
 - Instale as dependências com:
 ```
@@ -184,8 +221,6 @@ Instruções de execução do back esta no README do repositório do Backend.
    npm run dev
    ```
 
-- Rode o Backend SpringBoot: Instruções de execução do back esta no README do repositório do Backend.
-
-- Acesse a url do projeto localmente: ``` http://localhost:5173/ ```
+- Acesse a url do projeto pelo vite localmente: ``` http://localhost:5173/ ```
 
 - Para acessar o Dashboard faça login com um usuário válido, caso não tenha crie um novo usuário.

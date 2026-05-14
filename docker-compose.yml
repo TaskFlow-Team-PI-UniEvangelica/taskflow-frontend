@@ -3,6 +3,8 @@ services:
     image: img_taskflow_frontend
     build:
       context: .
+      args:
+        VITE_API_URL: ${VITE_API_URL} # lê url do .env
       dockerfile: Dockerfile
     container_name: taskflow_frontend
     ports:

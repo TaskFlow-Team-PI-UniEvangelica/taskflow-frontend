@@ -33,7 +33,7 @@ export default function EditTasks() {
   const fetchTasks = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8080/task', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/task`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) setTasks(await response.json());
@@ -45,7 +45,7 @@ export default function EditTasks() {
   const fetchUsers = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await fetch('http://localhost:8080/user', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/user`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) setTeamMembers(await response.json());
@@ -95,7 +95,7 @@ export default function EditTasks() {
     try {
       const token = localStorage.getItem('token');
 
-      const response = await fetch(`http://localhost:8080/task/${selectedTaskId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/task/${selectedTaskId}`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
