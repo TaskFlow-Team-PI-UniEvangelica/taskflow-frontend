@@ -10,7 +10,8 @@ const keycloakConfig = {
   authority: import.meta.env.VITE_KEYCLOAK_AUTHORITY,
   client_id: import.meta.env.VITE_KEYCLOAK_CLIENT_ID,
   redirect_uri: import.meta.env.VITE_REDIRECT_URI,
-  response_type: "code"
+  response_type: "code",
+  post_logout_redirect_uri: import.meta.env.VITE_REDIRECT_URI
 };
 
 createRoot(document.getElementById('root')).render(

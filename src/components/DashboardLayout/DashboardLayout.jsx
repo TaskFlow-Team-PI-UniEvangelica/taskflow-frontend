@@ -43,7 +43,6 @@ export default function DashboardLayout() {
   useEffect(() => {
     const buscarDadosDoUsuario = async () => {
       const token = auth?.user?.access_token;
-      if (!token) return navigate('/');
 
       try {
         const response = await fetch(`${import.meta.env.VITE_API_URL}/user/me`, {
@@ -88,10 +87,9 @@ export default function DashboardLayout() {
   };
 
   const handleLogoutConfirm = () => {
-    localStorage.removeItem('token');
+    auth.signoutRedirect();
     localStorage.removeItem('user_photo');
     setShowLogoutModal(false);
-    navigate('/');
   };
 
   const handlePasswordToggle = () => {
