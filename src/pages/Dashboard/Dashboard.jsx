@@ -1,19 +1,54 @@
+import { useAuth } from 'react-oidc-context';
 import React, { useState, useEffect } from 'react';
 import styles from './Dashboard.module.css';
 import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
+  const auth = useAuth();
   const navigate = useNavigate();
   const [userName, setUserName] = useState("Carregando...");
   const [tasks, setTasks] = useState([]);
   
+  const parseData = (prazo) => {
+    if (!prazo) return new Date();
+    if (Array.isArray(prazo)) {
+      return new Date(prazo[0], prazo[1] - 1, prazo[2]);
+    }
+    return new Date(prazo + "T00:00:00");
+  };
+
+  const atualizarEstatisticas = (listaDeTarefas) => {
+    const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
+
+    let contadores = { concluidas: 0, pendentes: 0, atrasadas: 0, andamento: 0 };
+
+    if (Array.isArray(listaDeTarefas)) {
+      listaDeTarefas.forEach(tarefa => {
+        const dataPrazo = parseData(tarefa.prazo);
+        const statusNormalizado = String(tarefa.status).toLowerCase();
+        if (statusNormalizado === "concluida") {
+          contadores.concluidas++;
+        } else if (statusNormalizado === "em_andamento") {
+          contadores.andamento++;
+        } else {
+          if (dataPrazo < hoje) {
+            contadores.atrasadas++;
+          } else {
+            contadores.pendentes++;
+          }
+        }
+      });
+    }
+    setStats(contadores);
+  };
   const [stats, setStats] = useState({
     concluidas: 0, pendentes: 0, atrasadas: 0, andamento: 0
   });
 
   useEffect(() => {
     const fetchUserProfile = async () => {
-      const token = localStorage.getItem('token');
+      const token = auth?.user?.access_token;
       if (!token) return navigate('/');
 
       try {
@@ -25,13 +60,13 @@ export default function Dashboard() {
           const data = await response.json();
           setUserName(data.nome ? data.nome.split(' ')[0] : "Usuário");
         }
-      } catch (error) {
-        console.error("Erro ao buscar perfil:", error);
+      } catch (_error) {
+        console.error("Erro", _error);
       }
     };
 
     const fetchTasks = async () => {
-      const token = localStorage.getItem('token');
+      const token = auth?.user?.access_token;
       if (!token) return;
 
       try {
@@ -45,8 +80,8 @@ export default function Dashboard() {
           setTasks(data);
           atualizarEstatisticas(data);
         }
-      } catch (error) {
-        console.error("Erro ao buscar tarefas:", error);
+      } catch (_error) {
+        console.error("Erro", _error);
       }
     };
 
@@ -54,41 +89,7 @@ export default function Dashboard() {
     fetchTasks();
   }, [navigate]);
 
-  const parseData = (prazo) => {
-    if (!prazo) return new Date(); 
-    if (Array.isArray(prazo)) {
-      return new Date(prazo[0], prazo[1] - 1, prazo[2]); 
-    }
-    return new Date(prazo + "T00:00:00"); 
-  };
 
-  const atualizarEstatisticas = (listaDeTarefas) => {
-    const hoje = new Date();
-    hoje.setHours(0, 0, 0, 0); 
-
-    let contadores = { concluidas: 0, pendentes: 0, atrasadas: 0, andamento: 0 };
-
-    if (Array.isArray(listaDeTarefas)) {
-      listaDeTarefas.forEach(tarefa => {
-        const dataPrazo = parseData(tarefa.prazo);
-        const statusNormalizado = String(tarefa.status).toLowerCase(); 
-        
-        if (statusNormalizado === 'concluida') {
-          contadores.concluidas++;
-        } else if (statusNormalizado === 'em_andamento') {
-          contadores.andamento++;
-        } else {
-          if (dataPrazo < hoje) {
-            contadores.atrasadas++;
-          } else {
-            contadores.pendentes++;
-          }
-        }
-      });
-    }
-
-    setStats(contadores);
-  };
 
   // Cores injetadas diretamente (Verde, Amarelo, Vermelho, Azul)
   const getCorDaBolinha = (status, prazo) => {

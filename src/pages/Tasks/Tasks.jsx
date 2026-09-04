@@ -1,8 +1,10 @@
+import { useAuth } from 'react-oidc-context';
 import React, { useState, useEffect } from 'react';
 import styles from './Tasks.module.css';
 import { FaCheckCircle, FaCalendarAlt, FaUsers } from 'react-icons/fa'; 
 
 export default function Tasks() {
+  const auth = useAuth();
   const [teamMembers, setTeamMembers] = useState([]); 
   const [showSuccess, setShowSuccess] = useState(false);
   const [erro, setErro] = useState(null); 
@@ -18,13 +20,13 @@ export default function Tasks() {
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = auth?.user?.access_token;
       const response = await fetch(`${import.meta.env.VITE_API_URL}/user`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) setTeamMembers(await response.json());
-    } catch (error) {
-      console.error("Erro ao buscar usuários da equipe", error);
+    } catch (_error) {
+      console.error("Erro", _error);
     }
   };
 
@@ -44,7 +46,7 @@ export default function Tasks() {
     setIsLoading(true);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = auth?.user?.access_token;
       const response = await fetch(`${import.meta.env.VITE_API_URL}/task`, {
         method: 'POST',
         headers: {
@@ -61,7 +63,7 @@ export default function Tasks() {
       } else {
         setErro('Erro ao registrar a tarefa no sistema.');
       }
-    } catch (error) {
+    } catch (_error) {
       setErro('Falha na comunicação com o servidor.');
     } finally {
       setIsLoading(false);

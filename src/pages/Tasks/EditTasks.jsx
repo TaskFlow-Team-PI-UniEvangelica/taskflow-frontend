@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from 'react-oidc-context';
 import { useLocation } from 'react-router-dom';
 import styles from './Tasks.module.css'; 
 import { FaCheckCircle, FaCalendarAlt, FaUsers } from 'react-icons/fa'; 
 
 export default function EditTasks() {
+  const auth = useAuth();
   const location = useLocation();
   const [tasks, setTasks] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
@@ -32,25 +34,25 @@ export default function EditTasks() {
 
   const fetchTasks = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = auth?.user?.access_token;
       const response = await fetch(`${import.meta.env.VITE_API_URL}/task`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) setTasks(await response.json());
-    } catch (error) {
-      console.error("Erro ao buscar tarefas", error);
+    } catch (_error) {
+      console.error("Erro", _error);
     }
   };
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem('token');
+      const token = auth?.user?.access_token;
       const response = await fetch(`${import.meta.env.VITE_API_URL}/user`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) setTeamMembers(await response.json());
-    } catch (error) {
-      console.error("Erro ao buscar equipe", error);
+    } catch (_error) {
+      console.error("Erro", _error);
     }
   };
 
@@ -93,7 +95,7 @@ export default function EditTasks() {
     setIsLoading(true);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = auth?.user?.access_token;
 
       const response = await fetch(`${import.meta.env.VITE_API_URL}/task/${selectedTaskId}`, {
         method: 'PUT',
@@ -118,7 +120,7 @@ export default function EditTasks() {
       } else {
         setErro('Erro ao atualizar a tarefa.');
       }
-    } catch (error) {
+    } catch (_error) {
       setErro('Falha na comunicação com o servidor.');
     } finally {
       setIsLoading(false);

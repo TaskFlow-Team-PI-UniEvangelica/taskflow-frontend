@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
 
@@ -13,13 +13,7 @@ function App() {
   const auth = useAuth();
 
   // salvar token no local storage por enquanto para manter as outras pages funcionando
-  useEffect(() => {
-    if (auth.isAuthenticated && auth.user?.access_token) {
-      localStorage.setItem('token', auth.user.access_token);
-    } else {
-      localStorage.removeItem('token');
-    }
-  }, [auth.isAuthenticated, auth.user]);
+  
 
   // condicional enquanto o keycloak carrega a validação
   if (auth.isLoading) {

@@ -1,12 +1,14 @@
+import { useAuth } from 'react-oidc-context';
 import React, { useState, useEffect } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useNavigate, Link, useLocation, Outlet } from 'react-router-dom';
 import styles from './DashboardLayout.module.css';
 // --- MUDANÇA: FaTrello adicionado na lista de importações abaixo ---
 import { FaChartPie, FaTasks, FaUsers, FaSignOutAlt, FaTimes, FaMoon, FaSun, FaSave, FaKey, FaCamera, FaIdBadge, FaEnvelope, FaBriefcase, FaEdit, FaTrello } from 'react-icons/fa';
 import { useTheme } from '../../context/ThemeContext';
 import PasswordInput from '../UI/PasswordInput';
 
-export default function DashboardLayout({ children }) {
+export default function DashboardLayout() {
+  const auth = useAuth();
 
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
@@ -40,7 +42,7 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => {
     const buscarDadosDoUsuario = async () => {
-      const token = localStorage.getItem('token');
+      const token = auth?.user?.access_token;
       if (!token) return navigate('/');
 
       try {
@@ -63,8 +65,8 @@ export default function DashboardLayout({ children }) {
         } else if (response.status === 401 || response.status === 403) {
           handleLogoutConfirm();
         }
-      } catch (error) {
-        console.error("Erro ao buscar dados:", error);
+      } catch (_error) {
+        console.error("Erro", _error);
       }
     };
 
@@ -106,7 +108,7 @@ export default function DashboardLayout({ children }) {
 
     setIsLoadingPassword(true);
     try {
-      const token = localStorage.getItem('token');
+      const token = auth?.user?.access_token;
 
       const response = await fetch(`${import.meta.env.VITE_API_URL}/user/me/password`, {
         method: 'PATCH',
@@ -130,7 +132,7 @@ export default function DashboardLayout({ children }) {
       } else {
         showNotification("Erro ao atualizar a senha.", "error");
       }
-    } catch (error) {
+    } catch (_error) {
       showNotification("Falha na comunicação com o servidor.", "error");
     } finally {
       setIsLoadingPassword(false);
@@ -211,7 +213,7 @@ export default function DashboardLayout({ children }) {
           </div>
         </div>
 
-        {children}
+        <Outlet />
       </main>
 
       {showLogoutModal && (

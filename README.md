@@ -25,10 +25,7 @@ taskflow-frontend/
 ├── src/                     # Código-fonte principal da aplicação React.
 │   ├── assets/              # Recursos estáticos importados diretamente no código (ex: react.svg).
 │   ├── components/          # Componentes visuais e de layout reutilizáveis.
-│   │   ├── AuthLayout/      # Layouts de autenticação e lógica de rotas protegidas (ProtectedRoute).
 │   │   ├── DashboardLayout/ # Estrutura visual base do sistema logado.
-│   │   ├── LoginForm/       # Componentes específicos de formulários e recuperação de senha.
-│   │   ├── RegisterForm/    # Componentes de cadastro de novos usuários.
 │   │   └── UI/              # Componentes primitivos genéricos e isolados (Button, Input, PasswordInput).
 │   ├── context/             # Contextos globais da aplicação (ex: ThemeContext para temas).
 │   ├── pages/               # Telas roteáveis completas da aplicação.
@@ -36,6 +33,8 @@ taskflow-frontend/
 │   │   ├── Kanban/          # Quadro de gerenciamento interativo de tarefas.
 │   │   ├── Tasks/           # Listagem e edição de tarefas.
 │   │   └── Teams/           # Criação e gestão de equipes e tarefas conjuntas.
+│   ├── _deprecated/         # Componentes de autenticação antigos e inativos.
+│   ├── _deprecated/         # Componentes de autenticação antigos e inativos.
 │   ├── App.jsx              # Ponto central de definição do roteamento (react-router-dom).
 │   └── main.jsx             # Ponto de entrada principal que renderiza o React no DOM.
 ├── .gitignore               # Regras de exclusão de arquivos para o repositório.
@@ -48,6 +47,11 @@ taskflow-frontend/
 └── vite.config.js           # Configurações do empacotador Vite.
 ```
 
+
+## Segurança e Autenticação
+O TaskFlow Frontend utiliza o padrão **OIDC (OpenID Connect)** integrado ao Keycloak. 
+Por motivos de segurança (prevenção contra ataques XSS - *Cross-Site Scripting*), a aplicação **não armazena Tokens JWT no LocalStorage ou SessionStorage**. O estado da sessão é gerenciado de forma puramente em memória através da biblioteca `react-oidc-context`.
+
 ## Requisitos para rodar
 - Docker e Docker Compose V2
 - Make (Para executar os atalhos apenas Linux)
@@ -58,6 +62,12 @@ Configuração das variáveis de ambiente pelo arquivo (.env), crie um arquivo c
 ```
 # adicione a url da api, a padrão local é essa abaixo
 VITE_API_URL=http://localhost:8080
+VITE_KEYCLOAK_AUTHORITY=http://localhost:9090/realms/taskflow-realm
+VITE_KEYCLOAK_CLIENT_ID=taskflow-frontend
+VITE_REDIRECT_URI=http://localhost:5173
+VITE_KEYCLOAK_AUTHORITY=http://localhost:9090/realms/taskflow-realm
+VITE_KEYCLOAK_CLIENT_ID=taskflow-frontend
+VITE_REDIRECT_URI=http://localhost:5173
 ```
 
 ## Passos para rodar via Linux (Docker + Makefile)

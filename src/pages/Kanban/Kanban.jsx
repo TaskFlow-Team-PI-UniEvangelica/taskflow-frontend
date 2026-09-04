@@ -1,24 +1,26 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from 'react-oidc-context';
 import styles from './Kanban.module.css';
 
 export default function Kanban() {
+  const auth = useAuth();
   const [tasks, setTasks] = useState([]);
 
+  const fetchTasks = async () => {
+    try {
+      const token = auth?.user?.access_token;
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/task`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (response.ok) setTasks(await response.json());
+    } catch (_error) {
+      console.error("Erro ao buscar tarefas");
+    }
+  };
   useEffect(() => {
     fetchTasks();
   }, []);
 
-  const fetchTasks = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/task`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) setTasks(await response.json());
-    } catch (error) {
-      console.error("Erro ao buscar tarefas");
-    }
-  };
 
   // --- TRATAMENTO DE DATAS ---
   const parseData = (prazo) => {
@@ -55,7 +57,7 @@ export default function Kanban() {
 
     // Dispara o PATCH pro backend em background
     try {
-      const token = localStorage.getItem('token');
+      const token = auth?.user?.access_token;
       await fetch(`${import.meta.env.VITE_API_URL}/task/${taskId}/status`, {
         method: 'PATCH',
         headers: { 
@@ -64,7 +66,7 @@ export default function Kanban() {
         },
         body: JSON.stringify({ status: novoStatus })
       });
-    } catch (error) {
+    } catch (_error) {
       console.error("Erro ao atualizar status via Drag and Drop");
       fetchTasks(); // Se der erro, recarrega os dados originais do banco
     }
