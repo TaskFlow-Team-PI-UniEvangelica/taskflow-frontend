@@ -57,17 +57,33 @@ Por motivos de segurança (prevenção contra ataques XSS - *Cross-Site Scriptin
 - Make (Para executar os atalhos apenas Linux)
 - NodeJS (Caso queira executar manualmente)
 
-## Configuração do .env para execução via Docker
-Configuração das variáveis de ambiente pelo arquivo (.env), crie um arquivo chamado .env na raiz do projeto, cole as informações abaixo no arquivo e adicione á url da api
-```
-# adicione a url da api, a padrão local é essa abaixo
+## Configuração do `.env` (Desenvolvimento e Produção)
+Crie um arquivo chamado `.env` na raiz do projeto. Ele será lido pelo Vite no ambiente de Desenvolvimento e empacotado no Build pelo Docker para o ambiente de Produção.
+
+### Para Desenvolvimento Local (`make run-dev`)
+Use as URLs locais. O Vite usará a porta `5173`.
+```env
+# URL da sua API Java (Local)
 VITE_API_URL=http://localhost:8080
+
+# Configurações do Keycloak (Local)
 VITE_KEYCLOAK_AUTHORITY=http://localhost:9090/realms/taskflow-realm
 VITE_KEYCLOAK_CLIENT_ID=taskflow-frontend
 VITE_REDIRECT_URI=http://localhost:5173
-VITE_KEYCLOAK_AUTHORITY=http://localhost:9090/realms/taskflow-realm
+```
+
+### Para Produção (`make run`)
+No servidor, você usará os domínios oficiais que apontam para o Cloudflare Tunnels (exemplo).
+```env
+# URL da sua API Pública (Com HTTPS)
+VITE_API_URL=https://api.taskflow.com.br
+
+# Configurações do Keycloak (Público via Cloudflare)
+VITE_KEYCLOAK_AUTHORITY=https://auth.taskflow.com.br/realms/taskflow-realm
 VITE_KEYCLOAK_CLIENT_ID=taskflow-frontend
-VITE_REDIRECT_URI=http://localhost:5173
+
+# URL de redirecionamento (A URL oficial do Front-end)
+VITE_REDIRECT_URI=https://taskflow.com.br
 ```
 
 ## Passos para rodar via Linux (Docker + Makefile)
@@ -197,7 +213,7 @@ Escolha o ambiente que deseja subir a aplicação.
    ```
 - Derruba o container de produção e apaga as imagens:
    ```
-   docker compose --rmi all
+   docker compose down --rmi all
    ```
 - Acessar os logs do container de produção:
    ```
