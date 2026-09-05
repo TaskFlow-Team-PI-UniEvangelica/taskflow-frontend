@@ -22,7 +22,21 @@ function App() {
 
   // condicional para erro de conexão com o keycloak
   if (auth.error) {
-    return <div>Ocorreu um erro ao conectar ao servidor de Autenticação: {auth.error.message}</div>;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '20vh', fontFamily: 'sans-serif' }}>
+        <h2>Oops! Houve uma falha na autenticação.</h2>
+        <p style={{ color: 'var(--text-light)', marginBottom: '20px' }}>Detalhe do erro: {auth.error.message}</p>
+        <button 
+          onClick={() => {
+            // Limpa os parametros sujos da URL (?state=...&error=...) e recarrega a pagina limpa
+            window.history.replaceState({}, document.title, "/");
+            window.location.reload();
+          }} 
+          style={{ padding: '12px 24px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '1rem', fontWeight: 'bold' }}>
+          Tentar Novamente
+        </button>
+      </div>
+    );
   }
 
   // Se não estiver logado exibe a landing page com o botão do Keycloak

@@ -73,7 +73,7 @@ VITE_REDIRECT_URI=http://localhost:5173
 ```
 
 ### Para Produção (`make run`)
-No servidor, você usará os domínios oficiais que apontam para o Cloudflare Tunnels (exemplo).
+No servidor, é usado domínios oficiais que apontam para o Cloudflare Tunnels.
 ```env
 # URL da sua API Pública (Com HTTPS)
 VITE_API_URL=https://api.taskflow.com.br

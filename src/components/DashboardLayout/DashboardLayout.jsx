@@ -3,9 +3,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation, Outlet } from 'react-router-dom';
 import styles from './DashboardLayout.module.css';
 // --- MUDANÇA: FaTrello adicionado na lista de importações abaixo ---
-import { FaChartPie, FaTasks, FaUsers, FaSignOutAlt, FaTimes, FaMoon, FaSun, FaSave, FaKey, FaCamera, FaIdBadge, FaEnvelope, FaBriefcase, FaEdit, FaTrello } from 'react-icons/fa';
+import { FaUser, FaTrash, FaChartPie, FaTasks, FaUsers, FaSignOutAlt, FaTimes, FaMoon, FaSun, FaSave, FaKey, FaCamera, FaIdBadge, FaEnvelope, FaBriefcase, FaEdit, FaTrello } from 'react-icons/fa';
 import { useTheme } from '../../context/ThemeContext';
 import PasswordInput from '../UI/PasswordInput';
+import AvatarManager from './AvatarManager';
 
 export default function DashboardLayout() {
   const auth = useAuth();
@@ -18,9 +19,10 @@ export default function DashboardLayout() {
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showAvatarManager, setShowAvatarManager] = useState(false);
   const [isLoadingPassword, setIsLoadingPassword] = useState(false);
 
-  const [profileImage, setProfileImage] = useState(localStorage.getItem('user_photo') || null);
+  const [profileImage, setProfileImage] = useState(null);
 
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -61,6 +63,7 @@ export default function DashboardLayout() {
             cargo: data.cargo || "Sem cargo",
             id: data.id || "N/A"
           });
+          fetchAndSetAvatar(data.id);
         } else if (response.status === 401 || response.status === 403) {
           handleLogoutConfirm();
         }
@@ -72,23 +75,72 @@ export default function DashboardLayout() {
     buscarDadosDoUsuario();
   }, [navigate]);
 
-  const handlePhotoChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result;
-        setProfileImage(base64String);
-        localStorage.setItem('user_photo', base64String);
+
+  
+  const fetchAndSetAvatar = async (userId) => {
+    const token = auth?.user?.access_token;
+    if (!token) return;
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/user/${userId}/avatar`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const blob = await response.blob();
+        setProfileImage(URL.createObjectURL(blob));
+      } else {
+        setProfileImage(null);
+        setShowAvatarManager(false);
+      }
+    } catch (e) {
+      setProfileImage(null);
+        setShowAvatarManager(false);
+    }
+  };
+
+  const handleUploadBlob = async (blob) => {
+    const formData = new FormData();
+    formData.append('file', blob, 'avatar.jpg');
+    const token = auth?.user?.access_token;
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/user/me/avatar`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      if (response.ok) {
         showNotification("Foto de perfil atualizada!", "save");
-      };
-      reader.readAsDataURL(file);
+        fetchAndSetAvatar(userData.id);
+        setShowAvatarManager(false);
+      } else {
+        showNotification("Erro ao atualizar foto", "error");
+      }
+    } catch (err) {
+      showNotification("Erro ao fazer upload da foto", "error");
+    }
+  };
+
+  const handleDeletePhoto = async () => {
+    const token = auth?.user?.access_token;
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/user/me/avatar`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        showNotification("Foto removida com sucesso!", "save");
+        setProfileImage(null);
+        setShowAvatarManager(false);
+      } else {
+        showNotification("Erro ao remover a foto no servidor.", "error");
+      }
+    } catch (err) {
+      showNotification("Erro ao remover foto", "error");
     }
   };
 
   const handleLogoutConfirm = () => {
     auth.signoutRedirect();
-    localStorage.removeItem('user_photo');
+    
     setShowLogoutModal(false);
   };
 
@@ -205,8 +257,9 @@ export default function DashboardLayout() {
             <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
               {userData.nome.split(' ')[0]}
             </span>
-            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#ccc', overflow: 'hidden', border: '2px solid var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {profileImage ? <img src={profileImage} alt="Nav" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
+            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#fff', overflow: 'hidden', border: '2px solid var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {profileImage ? <img src={profileImage} alt="Nav" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.onerror = null; setProfileImage(null);
+        setShowAvatarManager(false); }} /> : <FaUser size={20} color="var(--primary-blue)" />}
             </div>
           </div>
         </div>
@@ -235,19 +288,21 @@ export default function DashboardLayout() {
             </div>
 
             <div className={styles.profileHeader} style={{ marginBottom: '30px' }}>
-              <label htmlFor="avatar-upload" style={{ cursor: 'pointer', position: 'relative' }}>
-                <div className={styles.avatarCircle} style={{ position: 'relative', overflow: 'hidden', width: '90px', height: '90px', borderRadius: '50%', border: '3px solid var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 15px auto' }}>
+              <div onClick={() => setShowAvatarManager(true)} style={{ cursor: 'pointer', position: 'relative' }}>
+                <div className={styles.avatarCircle} style={{ position: 'relative', overflow: 'hidden', width: '90px', height: '90px', borderRadius: '50%', border: '3px solid var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', margin: '0 auto 15px auto' }}>
                   {profileImage ? (
-                    <img src={profileImage} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={profileImage} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.onerror = null; setProfileImage(null);
+        setShowAvatarManager(false); }} />
                   ) : (
-                    <FaCamera size={24} color="#ccc" />
+                    <FaUser size={40} color="var(--primary-blue)" />
                   )}
                   <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: '0.3s' }} onMouseEnter={(e) => e.currentTarget.style.opacity = 1} onMouseLeave={(e) => e.currentTarget.style.opacity = 0}>
                     <FaCamera color="#fff" />
                   </div>
                 </div>
-              </label>
-              <input id="avatar-upload" type="file" accept="image/*" hidden onChange={handlePhotoChange} />
+              </div>
+              
+
               <h2 style={{ fontSize: '1.5rem', color: 'var(--text-primary)', margin: 0 }}>{userData.nome}</h2>
             </div>
 
@@ -285,44 +340,22 @@ export default function DashboardLayout() {
 
               <div style={{ borderTop: '1px solid var(--border-color, #eee)', paddingTop: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
-                <button type="button" onClick={handlePasswordToggle} className={styles.btnCancel} style={{ padding: '10px 25px', margin: 0, borderRadius: '20px', fontWeight: 'bold' }}>
-                  {isChangingPassword ? 'Cancelar Alteração' : 'Mudar Senha de Acesso'}
+                <button type="button" onClick={() => window.open(`${import.meta.env.VITE_KEYCLOAK_AUTHORITY}/account/`, '_blank')} className={styles.btnCancel} style={{ padding: '10px 25px', margin: 0, borderRadius: '20px', fontWeight: 'bold', background: 'var(--primary-blue)', color: 'white' }}>
+                  Gerenciar Conta
                 </button>
-
-                {isChangingPassword && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '15px', width: '100%', animation: 'fadeIn 0.3s' }}>
-
-                    {/* Substituição pelos componentes PasswordInput */}
-                    <PasswordInput
-                      placeholder="Digite sua senha atual..."
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      style={{ width: '100%', padding: '12px', paddingRight: '40px', borderRadius: '8px', border: '1px solid #ddd', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
-                      autoFocus
-                    />
-
-                    <PasswordInput
-                      placeholder="Crie uma nova senha..."
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      style={{ width: '100%', padding: '12px', paddingRight: '40px', borderRadius: '8px', border: '2px solid var(--primary-blue)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
-                    />
-
-                    <button
-                      type="button"
-                      onClick={handlePasswordConfirm}
-                      className={styles.btnConfirm}
-                      style={{ width: '100%', padding: '12px' }}
-                      disabled={isLoadingPassword}
-                    >
-                      {isLoadingPassword ? 'Verificando e Salvando...' : 'Confirmar Nova Senha'}
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
           </div>
         </div>
+      )}
+
+      {showAvatarManager && (
+        <AvatarManager
+          currentImage={profileImage}
+          onClose={() => setShowAvatarManager(false)}
+          onUpload={handleUploadBlob}
+          onDelete={handleDeletePhoto}
+        />
       )}
     </div>
   );
