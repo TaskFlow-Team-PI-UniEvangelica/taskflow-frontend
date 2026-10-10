@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { OrganizationContext } from '../../context/OrganizationContext';
 import { useAuth } from 'react-oidc-context';
 import { useLocation } from 'react-router-dom';
 import styles from './Tasks.module.css'; 
@@ -6,6 +7,7 @@ import { FaCheckCircle, FaCalendarAlt, FaUsers } from 'react-icons/fa';
 
 export default function EditTasks() {
   const auth = useAuth();
+  const { currentOrg } = useContext(OrganizationContext);
   const location = useLocation();
   const [tasks, setTasks] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
@@ -23,7 +25,7 @@ export default function EditTasks() {
 
   useEffect(() => {
     fetchTasks();
-    fetchUsers();
+    if (currentOrg) fetchUsers();
   }, []);
 
   useEffect(() => {
@@ -35,7 +37,8 @@ export default function EditTasks() {
   const fetchTasks = async () => {
     try {
       const token = auth?.user?.access_token;
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/task`, {
+      if (!currentOrg) return setTasks([]);
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/task?organizationId=${currentOrg.id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) setTasks(await response.json());
@@ -47,7 +50,7 @@ export default function EditTasks() {
   const fetchUsers = async () => {
     try {
       const token = auth?.user?.access_token;
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/user`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/organization/${currentOrg.id}/members`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) setTeamMembers(await response.json());
@@ -152,14 +155,14 @@ export default function EditTasks() {
         
         <form className={styles.form} onSubmit={handleUpdate}>
           
-          <div className={styles.field} style={{ marginBottom: '20px', padding: '15px', backgroundColor: 'var(--bg-app)', borderRadius: '8px', border: '1px solid var(--primary-blue)' }}>
+          <div className={styles.field} style={{ marginBottom: '20px', padding: '15px', backgroundColor: 'var(--bg-app)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
             <label style={{ color: 'var(--primary-blue)', fontWeight: 'bold' }}>SELECIONAR TAREFA</label>
             <select 
               value={selectedTaskId}
               onChange={(e) => handleTaskSelection(e.target.value)}
-              style={{ width: '100%', padding: '10px', borderRadius: '8px', marginTop: '5px', border: '1px solid #ccc' }}
+              style={{ width: '100%', padding: '10px', borderRadius: '8px', marginTop: '5px', border: '1px solid var(--border-color)' }}
             >
-              <option value="">-- Escolha uma tarefa para editar --</option>
+              <option value="">Escolha uma tarefa para editar</option>
               {tasks.map(t => (
                 <option key={t.id} value={t.id}>#{t.id} - {t.titulo}</option>
               ))}
@@ -188,19 +191,18 @@ export default function EditTasks() {
 
               <div className={styles.field}>
                 <label><FaUsers /> ATRIBUIR RESPONSÁVEIS</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '5px', padding: '10px', background: 'var(--bg-app)', borderRadius: '8px', border: '1px solid #ccc' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '5px', padding: '10px', background: 'var(--bg-app)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                   {teamMembers.length === 0 ? (
                     <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Nenhum membro.</span>
                   ) : (
                     teamMembers.map(user => (
-                      <label key={user.id} style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', background: 'var(--bg-card)', padding: '5px 10px', borderRadius: '15px', border: '1px solid var(--primary-blue)', fontSize: '0.9rem' }}>
+                      <label key={user.id} style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', background: 'var(--bg-card)', padding: '5px 10px', borderRadius: '15px', border: '1px solid var(--border-color)', fontSize: '0.9rem' }}>
                         <input 
-                          type="checkbox" disabled={!selectedTaskId}
+                          type="checkbox" className="customCheckbox" disabled={!selectedTaskId}
                           checked={taskData.idsResponsaveis.includes(user.id)}
                           onChange={() => handleCheckboxChange(user.id)}
                         />
-                        {user.nome.split(' ')[0]} 
-                      </label>
+                        {user.nome.trim().split(' ').length > 1 ? `${user.nome.trim().split(' ')[0]} ${user.nome.trim().split(' ')[1][0]}.` : user.nome.trim().split(' ')[0]} </label>
                     ))
                   )}
                 </div>

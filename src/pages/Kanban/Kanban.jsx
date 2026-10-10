@@ -1,15 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useAuth } from 'react-oidc-context';
+import { OrganizationContext } from '../../context/OrganizationContext';
 import styles from './Kanban.module.css';
 
 export default function Kanban() {
   const auth = useAuth();
+  const { currentOrg } = useContext(OrganizationContext);
   const [tasks, setTasks] = useState([]);
 
   const fetchTasks = async () => {
+    if (!currentOrg) {
+        setTasks([]);
+        return;
+    }
     try {
       const token = auth?.user?.access_token;
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/task`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/task?organizationId=${currentOrg.id}`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (response.ok) setTasks(await response.json());
@@ -17,9 +23,10 @@ export default function Kanban() {
       console.error("Erro ao buscar tarefas");
     }
   };
+
   useEffect(() => {
     fetchTasks();
-  }, []);
+  }, [currentOrg]);
 
 
   // --- TRATAMENTO DE DATAS ---

@@ -71,7 +71,7 @@
   letter-spacing: 0.05em;
 }
 
-.field input, .field textarea, .field select {
+.field input:not([type="checkbox"]), .field textarea, .field select {
   background-color: #f1f5f9; 
   border: 2px solid #cbd5e1; 
   border-radius: 6px;
@@ -86,7 +86,7 @@
   color: #94a3b8;
 }
 
-.field input:focus, .field textarea:focus, .field select:focus {
+.field input:not([type="checkbox"]):focus, .field textarea:focus, .field select:focus {
   background-color: #ffffff;
   border-color: var(--primary-blue);
   outline: none;
@@ -181,7 +181,7 @@
   border-color: #27272a;
 }
 
-:global(.dark) .field input,
+:global(.dark) .field input:not([type="checkbox"]),
 :global(.dark) .field textarea,
 :global(.dark) .field select {
   background-color: #18181b;
