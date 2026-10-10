@@ -8,6 +8,11 @@ import Kanban from './pages/Kanban/Kanban';
 import Tasks from './pages/Tasks/Tasks';
 import EditTasks from './pages/Tasks/EditTasks';
 import Teams from './pages/Teams/Teams';
+import Organizations from './pages/Organizations/Organizations';
+import LandingPage from './pages/Landing/LandingPage';
+import { OrganizationProvider } from './context/OrganizationContext';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 function App() {
   const auth = useAuth();
@@ -17,7 +22,17 @@ function App() {
 
   // condicional enquanto o keycloak carrega a validação
   if (auth.isLoading) {
-    return <div style={{ display: 'flex', justifyContent: 'center', marginTop: '20vh' }}>Carregando...</div>;
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '20px' }}>
+        <div style={{
+          width: '56px', height: '56px', borderRadius: '16px',
+          background: 'linear-gradient(135deg, #3b82f6, #1d4ed8)',
+          color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center',
+          fontSize: '1.8rem', fontWeight: 'bold', animation: 'pulse 1.5s infinite'
+        }}>T</div>
+        <div style={{ color: 'var(--text-secondary)', fontWeight: '500' }}>Iniciando TaskFlow...</div>
+      </div>
+    );
   }
 
   // condicional para erro de conexão com o keycloak
@@ -39,39 +54,44 @@ function App() {
     );
   }
 
-  // Se não estiver logado exibe a landing page com o botão do Keycloak
+  // Se não estiver logado exibe a landing page
   if (!auth.isAuthenticated) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: '20vh', fontFamily: 'sans-serif' }}>
-        <h1>Bem-vindo ao TaskFlow</h1>
-        <p>Você foi desconectado. Faça o login para acessar suas Organizações.</p>
-        <button 
-          onClick={() => auth.signinRedirect()} 
-          style={{ padding: '12px 24px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '1rem', fontWeight: 'bold', marginTop: '20px' }}>
-          Entrar via Keycloak
-        </button>
-      </div>
+      <>
+        <style>{`
+          @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 14px rgba(59, 130, 246, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+          }
+        `}</style>
+        <LandingPage />
+      </>
     );
   }
 
   // se estiver logado renderiza o sistema
   return (
-    <Router>
-      <Routes>
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
-        
-        <Route element={<DashboardLayout />}>
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/kanban" element={<Kanban />} />
-          <Route path="/tasks" element={<Tasks />} />
-          <Route path="/edit-tasks" element={<EditTasks />} />
-          <Route path="/teams" element={<Teams />} />
-        </Route>
-        
-        {/* rota padrão para redirecionamento */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
-    </Router>
+    <OrganizationProvider>
+      <ToastContainer position="bottom-right" autoClose={3000} theme="colored" />
+      <Router>
+        <Routes>
+          <Route path="/" element={<Navigate to="/dashboard" replace />} />
+          
+          <Route element={<DashboardLayout />}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/kanban" element={<Kanban />} />
+            <Route path="/tasks" element={<Tasks />} />
+            <Route path="/edit-tasks" element={<EditTasks />} />
+            <Route path="/teams" element={<Teams />} />
+            <Route path="/organizations" element={<Organizations />} />
+          </Route>
+          
+          {/* rota padrão para redirecionamento */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </Router>
+    </OrganizationProvider>
   );
 }
 
