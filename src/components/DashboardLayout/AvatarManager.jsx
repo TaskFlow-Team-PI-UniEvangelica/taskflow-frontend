@@ -1,3 +1,4 @@
+import { toast } from 'react-toastify';
 import React, { useState, useCallback } from 'react';
 import Cropper from 'react-easy-crop';
 import { FaUser, FaTrash, FaUpload, FaTimes, FaCheck } from 'react-icons/fa';
@@ -18,7 +19,7 @@ export default function AvatarManager({ currentImage, onClose, onUpload, onDelet
     if (e.target.files && e.target.files.length > 0) {
       const file = e.target.files[0];
       if (file.size > 10 * 1024 * 1024) {
-        alert("A imagem escolhida é muito grande! O tamanho máximo permitido é de 10MB.");
+        toast.error("A imagem escolhida é muito grande! O tamanho máximo permitido é de 10MB.");
         e.target.value = null;
         return;
       }
