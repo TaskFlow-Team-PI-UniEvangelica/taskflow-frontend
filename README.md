@@ -7,6 +7,9 @@ Este repositório atua em conjunto com a Taskflow API e faz parte da execução 
     http://124.198.128.120/
     ```
 
+## Configuração e Variáveis de Ambiente
+Antes de iniciar o frontend, faça uma cópia do arquivo `.env.example` renomeando-o para `.env` e preencha a URL da API do backend e as configurações de autenticação do Keycloak (Autoridade, Client ID, Redirect URI).
+
 ## Dependências e Tecnologias Usadas
 
 * **Linguagem:** JavaScript (JSX)
