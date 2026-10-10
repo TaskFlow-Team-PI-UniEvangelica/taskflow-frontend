@@ -1,10 +1,12 @@
 import { useAuth } from 'react-oidc-context';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { OrganizationContext } from '../../context/OrganizationContext';
 import styles from './Dashboard.module.css';
 import { useNavigate } from 'react-router-dom';
 
 export default function Dashboard() {
   const auth = useAuth();
+  const { currentOrg } = useContext(OrganizationContext);
   const navigate = useNavigate();
   const [userName, setUserName] = useState("Carregando...");
   const [tasks, setTasks] = useState([]);
@@ -70,7 +72,8 @@ export default function Dashboard() {
       if (!token) return;
 
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_URL}/task`, {
+        if (!currentOrg) return setTasks([]);
+        const response = await fetch(`${import.meta.env.VITE_API_URL}/task?organizationId=${currentOrg.id}`, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
         });
