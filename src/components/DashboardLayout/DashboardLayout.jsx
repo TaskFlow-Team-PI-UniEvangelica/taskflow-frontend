@@ -73,6 +73,8 @@ export default function DashboardLayout() {
 
     return () => clearInterval(interval);
   }, [auth?.user?.access_token]);
+  const { organizations, currentOrg, selectOrganization, refreshOrganizations } = useContext(OrganizationContext);
+
   const handleInviteAction = async (inviteId, action) => {
     const token = auth?.user?.access_token;
     try {
@@ -84,8 +86,7 @@ export default function DashboardLayout() {
         showNotification(`Convite ${action === 'accept' ? 'aceito' : 'recusado'} com sucesso!`, 'success');
         fetchInvites();
         if (action === 'accept') {
-          // fetchOrganizations() caso necessário ou reload
-          window.location.reload();
+          await refreshOrganizations();
         }
       } else {
         showNotification('Erro ao processar convite', 'error');
@@ -145,14 +146,24 @@ export default function DashboardLayout() {
       });
       if (response.ok) {
         const blob = await response.blob();
-        setProfileImage(URL.createObjectURL(blob));
+        const objectUrl = URL.createObjectURL(blob);
+        setProfileImage(prev => {
+          if (prev) URL.revokeObjectURL(prev);
+          return objectUrl;
+        });
       } else {
-        setProfileImage(null);
+        setProfileImage(prev => {
+          if (prev) URL.revokeObjectURL(prev);
+          return null;
+        });
         setShowAvatarManager(false);
       }
     } catch (e) {
-      setProfileImage(null);
-        setShowAvatarManager(false);
+      setProfileImage(prev => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      setShowAvatarManager(false);
     }
   };
 
@@ -187,7 +198,10 @@ export default function DashboardLayout() {
       });
       if (response.ok) {
         showNotification("Foto removida com sucesso!", "save");
-        setProfileImage(null);
+        setProfileImage(prev => {
+          if (prev) URL.revokeObjectURL(prev);
+          return null;
+        });
         setShowAvatarManager(false);
       } else {
         showNotification("Erro ao remover a foto no servidor.", "error");
@@ -204,53 +218,6 @@ export default function DashboardLayout() {
     
     setShowLogoutModal(false);
   };
-
-  const handlePasswordToggle = () => {
-    setIsChangingPassword(!isChangingPassword);
-    setNewPassword('');
-    setCurrentPassword(''); // Limpa a senha atual ao cancelar também
-  };
-
-  const handlePasswordConfirm = async () => {
-    if (currentPassword.trim() === "" || newPassword.trim() === "") {
-      showNotification("Preencha a senha atual e a nova senha.", "error");
-      return;
-    }
-
-    setIsLoadingPassword(true);
-    try {
-      const token = auth?.user?.access_token;
-
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/user/me/password`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          senhaAtual: currentPassword,
-          novaSenha: newPassword
-        })
-      });
-
-      if (response.ok) {
-        showNotification("Senha atualizada com segurança!", "password");
-        setIsChangingPassword(false);
-        setNewPassword('');
-        setCurrentPassword('');
-      } else if (response.status === 400 || response.status === 403) {
-        showNotification("Senha atual incorreta ou dados inválidos.", "error");
-      } else {
-        showNotification("Erro ao atualizar a senha.", "error");
-      }
-    } catch (_error) {
-      showNotification("Falha na comunicação com o servidor.", "error");
-    } finally {
-      setIsLoadingPassword(false);
-    }
-  };
-
-  const { organizations, currentOrg, selectOrganization } = useContext(OrganizationContext);
 
   const isActive = (path) => location.pathname === path;
 

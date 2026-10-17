@@ -23,48 +23,86 @@ export default function Organizations() {
   const [newOrgName, setNewOrgName] = useState('');
   const [membersCanCreateTasks, setMembersCanCreateTasks] = useState(true);
   const [membersCanDeleteTasks, setMembersCanDeleteTasks] = useState(false);
+  const [membersCanDeleteOwnTasks, setMembersCanDeleteOwnTasks] = useState(false);
   const [membersCanChangeDeadlines, setMembersCanChangeDeadlines] = useState(false);
   const [membersCanReturnTasks, setMembersCanReturnTasks] = useState(false);
+  const [deletedTasksRetentionDays, setDeletedTasksRetentionDays] = useState(7);
   const [inviteEmails, setInviteEmails] = useState('');
   
   const [isEditingOrg, setIsEditingOrg] = useState(false);
-  const [activeModalTab, setActiveModalTab] = useState('geral');
   const [editOrgName, setEditOrgName] = useState('');
   const [orgToEdit, setOrgToEdit] = useState(null);
   
   const [editMembersCanCreateTasks, setEditMembersCanCreateTasks] = useState(true);
   const [editMembersCanDeleteTasks, setEditMembersCanDeleteTasks] = useState(false);
+  const [editMembersCanDeleteOwnTasks, setEditMembersCanDeleteOwnTasks] = useState(false);
   const [editMembersCanChangeDeadlines, setEditMembersCanChangeDeadlines] = useState(false);
   const [editMembersCanReturnTasks, setEditMembersCanReturnTasks] = useState(false);
+  const [editDeletedTasksRetentionDays, setEditDeletedTasksRetentionDays] = useState(7);
 
-  const [membros, setMembros] = useState([]);
-  const [novoMembroEmail, setNovoMembroEmail] = useState('');
-  const [novaRole, setNovaRole] = useState('MEMBER');
+  // Handlers de exclusividade mútua para o Modal de Criação
+  const handleToggleCreateTasksNew = (checked) => {
+    setMembersCanCreateTasks(checked);
+    if (!checked) {
+      setMembersCanDeleteOwnTasks(false);
+    }
+  };
 
-  const fetchMembros = async (orgId) => {
-    try {
-      const token = auth?.user?.access_token;
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/organization/${orgId}/members`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        setMembros(await response.json());
-      }
-    } catch (error) {
-      console.error("Erro ao carregar equipe:", error);
+  const handleToggleDeleteOwnNew = (checked) => {
+    if (!membersCanCreateTasks) return;
+    setMembersCanDeleteOwnTasks(checked);
+    if (checked) {
+      setMembersCanDeleteTasks(false);
+    }
+  };
+
+  const handleToggleDeleteAllNew = (checked) => {
+    setMembersCanDeleteTasks(checked);
+    if (checked) {
+      setMembersCanDeleteOwnTasks(false);
+    }
+  };
+
+  // Handlers de exclusividade mútua para o Modal de Edição
+  const handleToggleCreateTasksEdit = (checked) => {
+    setEditMembersCanCreateTasks(checked);
+    if (!checked) {
+      setEditMembersCanDeleteOwnTasks(false);
+    }
+  };
+
+  const handleToggleDeleteOwnEdit = (checked) => {
+    if (!editMembersCanCreateTasks) return;
+    setEditMembersCanDeleteOwnTasks(checked);
+    if (checked) {
+      setEditMembersCanDeleteTasks(false);
+    }
+  };
+
+  const handleToggleDeleteAllEdit = (checked) => {
+    setEditMembersCanDeleteTasks(checked);
+    if (checked) {
+      setEditMembersCanDeleteOwnTasks(false);
     }
   };
 
   const openEditModal = (org) => {
     setOrgToEdit(org);
     setEditOrgName(org.nome);
-    setEditMembersCanCreateTasks(org.membersCanCreateTasks !== false);
-    setEditMembersCanDeleteTasks(org.membersCanDeleteTasks === true);
+    const canCreate = org.membersCanCreateTasks !== false;
+    const canDeleteAll = org.membersCanDeleteTasks === true;
+    const canDeleteOwn = canCreate && !canDeleteAll && org.membersCanDeleteOwnTasks === true;
+    setEditMembersCanCreateTasks(canCreate);
+    setEditMembersCanDeleteTasks(canDeleteAll);
+    setEditMembersCanDeleteOwnTasks(canDeleteOwn);
     setEditMembersCanChangeDeadlines(org.membersCanChangeDeadlines === true);
     setEditMembersCanReturnTasks(org.membersCanReturnTasks === true);
-    setActiveModalTab('geral');
+    setEditDeletedTasksRetentionDays(
+      org.deletedTasksRetentionDays !== undefined && org.deletedTasksRetentionDays !== null
+        ? Number(org.deletedTasksRetentionDays)
+        : 0
+    );
     setIsEditingOrg(true);
-    fetchMembros(org.id);
   };
 
   const handleEditOrg = async () => {
@@ -72,19 +110,26 @@ export default function Organizations() {
 
     try {
       const token = auth?.user?.access_token;
+      const payload = {
+        nome: editOrgName,
+        membersCanCreateTasks: editMembersCanCreateTasks,
+        membersCanDeleteTasks: editMembersCanDeleteTasks,
+        membersCanDeleteOwnTasks: editMembersCanCreateTasks ? editMembersCanDeleteOwnTasks : false,
+        membersCanChangeDeadlines: editMembersCanChangeDeadlines,
+        membersCanReturnTasks: editMembersCanReturnTasks
+      };
+
+      if (orgToEdit.myRole === 'OWNER') {
+        payload.deletedTasksRetentionDays = Number(editDeletedTasksRetentionDays);
+      }
+
       const response = await fetch(`${import.meta.env.VITE_API_URL}/organization/${orgToEdit.id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ 
-          nome: editOrgName,
-          membersCanCreateTasks: editMembersCanCreateTasks,
-          membersCanDeleteTasks: editMembersCanDeleteTasks,
-          membersCanChangeDeadlines: editMembersCanChangeDeadlines,
-          membersCanReturnTasks: editMembersCanReturnTasks
-        })
+        body: JSON.stringify(payload)
       });
       
       if (response.ok) {
@@ -93,9 +138,10 @@ export default function Organizations() {
         toast.success('Organização atualizada com sucesso!');
         refreshOrganizations();
       } else {
-        toast.error('Erro ao atualizar organização. Verifique se você tem permissão.');
+        const err = await response.json().catch(() => null);
+        toast.error(err?.message || 'Erro ao atualizar organização. Verifique se você tem permissão.');
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error('Erro de rede.');
     }
   };
@@ -122,7 +168,7 @@ export default function Organizations() {
         toast.error("Erro ao excluir organização. Apenas o OWNER pode realizar esta ação.");
         setConfirmDeleteModal(false);
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error("Erro de rede.");
       setConfirmDeleteModal(false);
     }
@@ -143,19 +189,21 @@ export default function Organizations() {
           nome: newOrgName,
           membersCanCreateTasks,
           membersCanDeleteTasks,
+          membersCanDeleteOwnTasks: membersCanCreateTasks ? membersCanDeleteOwnTasks : false,
           membersCanChangeDeadlines,
-          membersCanReturnTasks
+          membersCanReturnTasks,
+          deletedTasksRetentionDays: Number(deletedTasksRetentionDays)
         })
       });
       
       if (response.ok) {
         const createdOrg = await response.json();
 
-        // Enviar convites por email
+        // Enviar convites por email através do subsistema oficial de convites
         if (inviteEmails.trim()) {
            const emails = inviteEmails.split(',').map(e => e.trim()).filter(e => e);
            for (let email of emails) {
-              await fetch(`${import.meta.env.VITE_API_URL}/organization/${createdOrg.id}/members`, {
+              await fetch(`${import.meta.env.VITE_API_URL}/organization/${createdOrg.id}/invites`, {
                 method: 'POST',
                 headers: {
                   'Authorization': `Bearer ${token}`,
@@ -171,12 +219,19 @@ export default function Organizations() {
         setShowCreateModal(false);
         refreshOrganizations();
       } else {
-        toast.error('Erro ao criar organização');
+        const err = await response.json().catch(() => null);
+        toast.error(err?.message || 'Erro ao criar organização');
       }
-    } catch (err) {
+    } catch (_err) {
       toast.error('Erro de comunicação com servidor');
     }
   };
+
+  const disableNewDeleteOwn = !membersCanCreateTasks || membersCanDeleteTasks;
+  const disableNewDeleteAll = membersCanDeleteOwnTasks;
+
+  const disableEditDeleteOwn = !editMembersCanCreateTasks || editMembersCanDeleteTasks;
+  const disableEditDeleteAll = editMembersCanDeleteOwnTasks;
 
   return (
     <div className={styles.container}>
@@ -235,7 +290,7 @@ export default function Organizations() {
 
       {showCreateModal && (
         <div className={styles.modalOverlay}>
-          <div className={styles.modalBox} style={{maxWidth: '500px'}}>
+          <div className={styles.modalBox} style={{maxWidth: '520px'}}>
             <h3>Criar e Configurar Organização</h3>
             
             <div className={styles.inputGroup} style={{marginBottom: '15px'}}>
@@ -250,27 +305,82 @@ export default function Organizations() {
             </div>
 
             <div style={{marginBottom: '15px'}}>
-              <strong style={{display: 'block', marginBottom: '10px'}}>Configurações de Permissões:</strong>
+              <strong style={{display: 'block', marginBottom: '10px'}}>Configurações de Permissões (Cargo Membro):</strong>
               
-              <label style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px'}}>
-                <input type="checkbox" className="customCheckbox" checked={membersCanCreateTasks} onChange={e => setMembersCanCreateTasks(e.target.checked)} />
+              <label style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer'}}>
+                <input
+                  type="checkbox"
+                  className="customCheckbox"
+                  checked={membersCanCreateTasks}
+                  onChange={e => handleToggleCreateTasksNew(e.target.checked)}
+                />
                 Membros podem criar tarefas
               </label>
+
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginBottom: '8px',
+                  opacity: disableNewDeleteOwn ? 0.5 : 1,
+                  cursor: disableNewDeleteOwn ? 'not-allowed' : 'pointer'
+                }}
+              >
+                <input
+                  type="checkbox"
+                  className="customCheckbox"
+                  checked={membersCanDeleteOwnTasks}
+                  disabled={disableNewDeleteOwn}
+                  onChange={e => handleToggleDeleteOwnNew(e.target.checked)}
+                />
+                Membros podem excluir apenas suas próprias tarefas
+              </label>
               
-              <label style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px'}}>
-                <input type="checkbox" className="customCheckbox" checked={membersCanDeleteTasks} onChange={e => setMembersCanDeleteTasks(e.target.checked)} />
-                Membros podem deletar tarefas
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginBottom: '8px',
+                  opacity: disableNewDeleteAll ? 0.5 : 1,
+                  cursor: disableNewDeleteAll ? 'not-allowed' : 'pointer'
+                }}
+              >
+                <input
+                  type="checkbox"
+                  className="customCheckbox"
+                  checked={membersCanDeleteTasks}
+                  disabled={disableNewDeleteAll}
+                  onChange={e => handleToggleDeleteAllNew(e.target.checked)}
+                />
+                Membros podem excluir todas as tarefas
               </label>
 
-              <label style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px'}}>
+              <label style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer'}}>
                 <input type="checkbox" className="customCheckbox" checked={membersCanChangeDeadlines} onChange={e => setMembersCanChangeDeadlines(e.target.checked)} />
                 Membros podem alterar prazos
               </label>
 
-              <label style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px'}}>
+              <label style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px', cursor: 'pointer'}}>
                 <input type="checkbox" className="customCheckbox" checked={membersCanReturnTasks} onChange={e => setMembersCanReturnTasks(e.target.checked)} />
-                Membros podem retornar status de tarefas
+                Membros podem retornar status de tarefas concluídas
               </label>
+            </div>
+
+            <div className={styles.inputGroup} style={{marginBottom: '15px'}}>
+              <label>Persistência do Histórico de Tarefas Excluídas (Exclusivo do Dono)</label>
+              <select
+                value={deletedTasksRetentionDays}
+                onChange={e => setDeletedTasksRetentionDays(Number(e.target.value))}
+                className={styles.input}
+              >
+                <option value={7}>7 dias</option>
+                <option value={15}>15 dias</option>
+                <option value={30}>30 dias</option>
+                <option value={90}>90 dias</option>
+                <option value={0}>Permanente (Sem expiração)</option>
+              </select>
             </div>
 
             <div className={styles.inputGroup} style={{marginBottom: '20px'}}>
@@ -291,15 +401,16 @@ export default function Organizations() {
           </div>
         </div>
       )}
-    {isEditingOrg && (
+
+      {isEditingOrg && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: 'var(--bg-card)', padding: '30px', borderRadius: '12px', width: '90%', maxWidth: '400px' }}>
+          <div style={{ backgroundColor: 'var(--bg-card)', padding: '30px', borderRadius: '12px', width: '90%', maxWidth: '480px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
               <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Configurar Organização</h3>
               <FaTimes onClick={() => setIsEditingOrg(false)} style={{ cursor: 'pointer', color: 'var(--text-secondary)' }} />
             </div>
 
-            <div style={{ marginBottom: '25px' }}>
+            <div style={{ marginBottom: '20px' }}>
               <label style={{ display: 'block', marginBottom: '5px', color: 'var(--text-secondary)' }}>Nome da Organização</label>
               <input 
                 type="text" 
@@ -309,28 +420,96 @@ export default function Organizations() {
               />
             </div>
 
-            <div style={{marginBottom: '25px'}}>
-              <strong style={{display: 'block', marginBottom: '10px', color: 'var(--text-primary)'}}>Permissões de Membros:</strong>
+            <div style={{marginBottom: '20px'}}>
+              <strong style={{display: 'block', marginBottom: '10px', color: 'var(--text-primary)'}}>Permissões do Cargo Membro:</strong>
               
-              <label style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px', color: 'var(--text-secondary)'}}>
-                <input type="checkbox" className="customCheckbox" checked={editMembersCanCreateTasks} onChange={e => setEditMembersCanCreateTasks(e.target.checked)} />
+              <label style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--text-secondary)', cursor: 'pointer'}}>
+                <input
+                  type="checkbox"
+                  className="customCheckbox"
+                  checked={editMembersCanCreateTasks}
+                  onChange={e => handleToggleCreateTasksEdit(e.target.checked)}
+                />
                 Membros podem criar tarefas
               </label>
+
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginBottom: '8px',
+                  color: 'var(--text-secondary)',
+                  opacity: disableEditDeleteOwn ? 0.45 : 1,
+                  cursor: disableEditDeleteOwn ? 'not-allowed' : 'pointer'
+                }}
+              >
+                <input
+                  type="checkbox"
+                  className="customCheckbox"
+                  checked={editMembersCanDeleteOwnTasks}
+                  disabled={disableEditDeleteOwn}
+                  onChange={e => handleToggleDeleteOwnEdit(e.target.checked)}
+                />
+                Membros podem excluir apenas suas próprias tarefas
+              </label>
               
-              <label style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px', color: 'var(--text-secondary)'}}>
-                <input type="checkbox" className="customCheckbox" checked={editMembersCanDeleteTasks} onChange={e => setEditMembersCanDeleteTasks(e.target.checked)} />
-                Membros podem deletar tarefas
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  marginBottom: '8px',
+                  color: 'var(--text-secondary)',
+                  opacity: disableEditDeleteAll ? 0.45 : 1,
+                  cursor: disableEditDeleteAll ? 'not-allowed' : 'pointer'
+                }}
+              >
+                <input
+                  type="checkbox"
+                  className="customCheckbox"
+                  checked={editMembersCanDeleteTasks}
+                  disabled={disableEditDeleteAll}
+                  onChange={e => handleToggleDeleteAllEdit(e.target.checked)}
+                />
+                Membros podem excluir todas as tarefas
               </label>
 
-              <label style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '5px', color: 'var(--text-secondary)'}}>
+              <label style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--text-secondary)', cursor: 'pointer'}}>
                 <input type="checkbox" className="customCheckbox" checked={editMembersCanChangeDeadlines} onChange={e => setEditMembersCanChangeDeadlines(e.target.checked)} />
                 Membros podem alterar prazos
               </label>
 
-              <label style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px', color: 'var(--text-secondary)'}}>
+              <label style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: 'var(--text-secondary)', cursor: 'pointer'}}>
                 <input type="checkbox" className="customCheckbox" checked={editMembersCanReturnTasks} onChange={e => setEditMembersCanReturnTasks(e.target.checked)} />
-                Membros podem retornar status de tarefas
+                Membros podem retornar status de tarefas concluídas
               </label>
+            </div>
+
+            <div style={{ marginBottom: '25px' }}>
+              <label style={{ display: 'block', marginBottom: '5px', color: 'var(--text-secondary)', fontSize: '0.9rem' }}>
+                Persistência do Histórico de Tarefas Excluídas {orgToEdit?.myRole !== 'OWNER' && '(Apenas o Dono pode alterar)'}
+              </label>
+              <select
+                value={editDeletedTasksRetentionDays}
+                disabled={orgToEdit?.myRole !== 'OWNER'}
+                onChange={e => setEditDeletedTasksRetentionDays(Number(e.target.value))}
+                style={{
+                  width: '100%',
+                  padding: '10px',
+                  borderRadius: '8px',
+                  border: '1px solid var(--border-color)',
+                  background: 'var(--bg-app)',
+                  color: 'var(--text-primary)',
+                  opacity: orgToEdit?.myRole !== 'OWNER' ? 0.6 : 1
+                }}
+              >
+                <option value={7}>Disponível por 7 dias</option>
+                <option value={15}>Disponível por 15 dias</option>
+                <option value={30}>Disponível por 30 dias</option>
+                <option value={90}>Disponível por 90 dias</option>
+                <option value={0}>Permanente (Sem expiração)</option>
+              </select>
             </div>
 
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between', alignItems: 'center' }}>

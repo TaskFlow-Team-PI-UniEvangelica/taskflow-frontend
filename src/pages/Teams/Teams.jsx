@@ -22,7 +22,6 @@ export default function Equipe() {
   const { currentOrg, refreshOrganizations } = useContext(OrganizationContext);
 
   const [membros, setMembros] = useState([]);
-  const [todosUsuarios, setTodosUsuarios] = useState([]);
   const [busca, setBusca] = useState(''); 
   const [loading, setLoading] = useState(true);
   const [isAddingMember, setIsAddingMember] = useState(false);
@@ -54,24 +53,9 @@ export default function Equipe() {
     }
   };
 
-  const fetchTodosUsuarios = async () => {
-    try {
-      const token = auth?.user?.access_token;
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/user`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        setTodosUsuarios(await response.json());
-      }
-    } catch (error) {
-      console.error("Erro", error);
-    }
-  };
-
   useEffect(() => {
     fetchEquipe();
-    fetchTodosUsuarios();
-  }, [currentOrg]);
+  }, [currentOrg, auth?.user?.access_token]);
 
   const handleAddMember = async () => {
     if (!novoMembroEmail) return toast.error('Informe o email do usuário');
@@ -314,8 +298,12 @@ export default function Equipe() {
                 style={{ width: '100%', padding: '10px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-primary)' }}
               >
                 <option value="MEMBER">Membro (Padrão)</option>
-                <option value="MANAGER">Gerente</option>
-                <option value="SUB_OWNER">Sub-Dono</option>
+                {(currentUserRole === 'OWNER' || currentUserRole === 'SUB_OWNER') && (
+                  <option value="MANAGER">Gerente</option>
+                )}
+                {currentUserRole === 'OWNER' && (
+                  <option value="SUB_OWNER">Sub-Dono</option>
+                )}
               </select>
             </div>
 
@@ -340,15 +328,22 @@ export default function Equipe() {
             </div>
             
             <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
-              {membros.map(membro => (
+              {membros.map(membro => {
+                const isTargetOwner = membro.roleNaOrganizacao === 'OWNER';
+                const isPeerSubOwner = currentUserRole === 'SUB_OWNER' && membro.roleNaOrganizacao === 'SUB_OWNER';
+                const canManageTarget = !isTargetOwner && !isPeerSubOwner && membro.email !== currentUserEmail;
+
+                return (
                 <div key={membro.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px', borderBottom: '1px solid var(--border-color)' }}>
                   <div>
                     <strong style={{ color: 'var(--text-primary)', display: 'block' }}>{membro.nome}</strong>
                     <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{membro.email}</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    {membro.roleNaOrganizacao === 'OWNER' ? (
-                        <span style={{ fontWeight: 'bold', color: 'var(--primary-blue)', fontSize: '0.9rem', backgroundColor: 'var(--bg-app)', padding: '4px 12px', borderRadius: '15px' }}>Dono</span>
+                    {!canManageTarget ? (
+                        <span style={{ fontWeight: 'bold', color: 'var(--primary-blue)', fontSize: '0.9rem', backgroundColor: 'var(--bg-app)', padding: '4px 12px', borderRadius: '15px' }}>
+                          {translateRole(membro.roleNaOrganizacao)}
+                        </span>
                     ) : (
                       <>
                         <select 
@@ -357,8 +352,12 @@ export default function Equipe() {
                           style={{ height: '32px', padding: '0 5px', borderRadius: '5px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-primary)', fontSize: '0.85rem', boxSizing: 'border-box' }}
                         >
                           <option value="MEMBER">Membro</option>
-                          <option value="MANAGER">Gerente</option>
-                          <option value="SUB_OWNER">Sub-Dono</option>
+                          {(currentUserRole === 'OWNER' || currentUserRole === 'SUB_OWNER') && (
+                            <option value="MANAGER">Gerente</option>
+                          )}
+                          {currentUserRole === 'OWNER' && (
+                            <option value="SUB_OWNER">Sub-Dono</option>
+                          )}
                         </select>
                         
                         {currentUserRole === 'OWNER' && membro.roleNaOrganizacao === 'SUB_OWNER' && (
@@ -380,7 +379,8 @@ export default function Equipe() {
                     )}
                   </div>
                 </div>
-              ))}
+              );
+              })}
             </div>
             
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
