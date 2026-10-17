@@ -8,13 +8,44 @@ import styles from './Kanban.module.css';
 
 export default function Kanban() {
   const auth = useAuth();
-  const { currentOrg } = useContext(OrganizationContext);
+  const { currentOrg, currentUser } = useContext(OrganizationContext);
   const [tasks, setTasks] = useState([]);
   const [historyTask, setHistoryTask] = useState(null);
   const [showDeletedModal, setShowDeletedModal] = useState(false);
 
   const userRole = currentOrg?.myRole || currentOrg?.userRole;
   const isAboveMember = ['OWNER', 'SUB_OWNER', 'MANAGER'].includes(userRole);
+
+  const canMoveTaskCard = (task) => {
+    if (!task || !currentOrg) return false;
+    if (isAboveMember) return true;
+
+    const isCreator = Boolean(
+      currentUser &&
+      ((task.criadorId != null && Number(task.criadorId) === Number(currentUser.id)) ||
+       (task.nomeCriador && currentUser.nome && task.nomeCriador === currentUser.nome))
+    );
+    const isAssignee = Boolean(
+      currentUser &&
+      ((Array.isArray(task.idsResponsaveis) &&
+        task.idsResponsaveis.some(id => Number(id) === Number(currentUser.id))) ||
+       (Array.isArray(task.nomesResponsaveis) &&
+        currentUser.nome &&
+        task.nomesResponsaveis.includes(currentUser.nome)))
+    );
+
+    const canMove =
+      currentOrg.membersCanMoveAllTasks === true ||
+      (currentOrg.membersCanMoveOwnOrAssignedTasks !== false && (isCreator || isAssignee));
+
+    if (!canMove) return false;
+
+    if (String(task.status).toLowerCase() === 'concluida') {
+      return currentOrg.membersCanReturnTasks === true;
+    }
+
+    return true;
+  };
 
   const fetchTasks = async () => {
     if (!currentOrg?.id) {
@@ -54,8 +85,12 @@ export default function Kanban() {
   };
 
   // --- EVENTOS DE DRAG AND DROP NATIVO ---
-  const handleDragStart = (e, taskId) => {
-    e.dataTransfer.setData("taskId", taskId);
+  const handleDragStart = (e, task) => {
+    if (!canMoveTaskCard(task)) {
+      e.preventDefault();
+      return;
+    }
+    e.dataTransfer.setData("taskId", task.id);
   };
 
   const handleDragOver = (e) => {
@@ -65,6 +100,8 @@ export default function Kanban() {
   const handleDrop = async (e, novoStatus) => {
     const taskId = e.dataTransfer.getData("taskId");
     if (!taskId) return;
+    const draggedTask = tasks.find(t => t.id.toString() === taskId.toString());
+    if (!draggedTask || !canMoveTaskCard(draggedTask)) return;
     
     setTasks(prevTasks => prevTasks.map(t => 
       t.id.toString() === taskId ? { ...t, status: novoStatus } : t
@@ -135,6 +172,7 @@ export default function Kanban() {
               <TaskCard
                 key={task.id}
                 task={task}
+                canMove={canMoveTaskCard(task)}
                 onDragStart={handleDragStart}
                 onOpenHistory={setHistoryTask}
                 isAtrasada={isAtrasada(task.prazo, task.status)}
@@ -154,6 +192,7 @@ export default function Kanban() {
               <TaskCard
                 key={task.id}
                 task={task}
+                canMove={canMoveTaskCard(task)}
                 onDragStart={handleDragStart}
                 onOpenHistory={setHistoryTask}
                 isAtrasada={isAtrasada(task.prazo, task.status)}
@@ -173,6 +212,7 @@ export default function Kanban() {
               <TaskCard
                 key={task.id}
                 task={task}
+                canMove={canMoveTaskCard(task)}
                 onDragStart={handleDragStart}
                 onOpenHistory={setHistoryTask}
                 isAtrasada={false}
@@ -202,7 +242,7 @@ export default function Kanban() {
   );
 }
 
-function TaskCard({ task, onDragStart, onOpenHistory, isAtrasada }) {
+function TaskCard({ task, canMove, onDragStart, onOpenHistory, isAtrasada }) {
   const dataFormatada = task.prazo ? new Date(
     Array.isArray(task.prazo) ? new Date(task.prazo[0], task.prazo[1] - 1, task.prazo[2]) : task.prazo + "T00:00:00"
   ).toLocaleDateString('pt-BR') : 'Sem prazo';
@@ -210,8 +250,10 @@ function TaskCard({ task, onDragStart, onOpenHistory, isAtrasada }) {
   return (
     <div 
       className={styles.taskCard} 
-      draggable
-      onDragStart={(e) => onDragStart(e, task.id)}
+      draggable={canMove}
+      onDragStart={(e) => onDragStart(e, task)}
+      style={{ cursor: canMove ? 'grab' : 'default' }}
+      title={!canMove ? 'Você não possui permissão para mover esta tarefa segundo as configurações da organização.' : undefined}
     >
       <div className={styles.cardHeaderRow}>
         <p className={styles.taskTitle}>

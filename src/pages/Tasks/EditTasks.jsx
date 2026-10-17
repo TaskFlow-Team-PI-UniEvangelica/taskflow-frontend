@@ -39,6 +39,38 @@ export default function EditTasks() {
      (selectedTask.nomeCriador && currentUser.nome && selectedTask.nomeCriador === currentUser.nome))
   );
 
+  const isAssignedTask = Boolean(
+    selectedTask &&
+    currentUser &&
+    ((Array.isArray(selectedTask.idsResponsaveis) &&
+      selectedTask.idsResponsaveis.some(id => Number(id) === Number(currentUser.id))) ||
+     (Array.isArray(selectedTask.nomesResponsaveis) &&
+      currentUser.nome &&
+      selectedTask.nomesResponsaveis.includes(currentUser.nome)))
+  );
+
+  const isOwnOrAssignedTask = isOwnTask || isAssignedTask;
+
+  // Regra de edição:
+  // - Cargos acima de MEMBER (OWNER, SUB_OWNER, MANAGER) sempre podem editar qualquer task.
+  // - Cargo MEMBER pode editar todas se membersCanEditAllTasks=true, ou apenas tarefas que criou/é responsável se membersCanEditOwnOrAssignedTasks=true.
+  const canEditSelectedTask = Boolean(
+    selectedTask &&
+    (isAboveMember ||
+      currentOrg?.membersCanEditAllTasks === true ||
+      (currentOrg?.membersCanEditOwnOrAssignedTasks !== false && isOwnOrAssignedTask))
+  );
+
+  // Regra de movimentação de status:
+  // - Cargos acima de MEMBER sempre podem mover qualquer task.
+  // - Cargo MEMBER pode mover todas se membersCanMoveAllTasks=true, ou apenas tarefas que criou/é responsável se membersCanMoveOwnOrAssignedTasks=true.
+  const canMoveSelectedTask = Boolean(
+    selectedTask &&
+    (isAboveMember ||
+      currentOrg?.membersCanMoveAllTasks === true ||
+      (currentOrg?.membersCanMoveOwnOrAssignedTasks !== false && isOwnOrAssignedTask))
+  );
+
   // Regra de exclusão:
   // - Cargos acima de MEMBER (OWNER, SUB_OWNER, MANAGER) sempre podem excluir qualquer task.
   // - Cargo MEMBER pode excluir todas se membersCanDeleteTasks=true, ou apenas a própria se membersCanCreateTasks=true && membersCanDeleteOwnTasks=true.
@@ -52,11 +84,17 @@ export default function EditTasks() {
   );
 
   const canChangeDeadline = Boolean(
-    currentOrg && (isAboveMember || currentOrg.membersCanChangeDeadlines === true)
+    currentOrg && canEditSelectedTask && (isAboveMember || currentOrg.membersCanChangeDeadlines === true)
+  );
+
+  const anyMemberMoveOptionEnabled = Boolean(
+    currentOrg?.membersCanMoveAllTasks === true || currentOrg?.membersCanMoveOwnOrAssignedTasks !== false
   );
 
   const canReturnTask = Boolean(
-    currentOrg && (isAboveMember || currentOrg.membersCanReturnTasks === true)
+    currentOrg &&
+    canMoveSelectedTask &&
+    (isAboveMember || (anyMemberMoveOptionEnabled && currentOrg.membersCanReturnTasks === true))
   );
 
   // Recarrega a lista e limpa a seleção APENAS quando o ID da organização muda (evita flicker no hot reload)
@@ -287,12 +325,33 @@ export default function EditTasks() {
             </select>
           </div>
 
+          {selectedTaskId && (!canEditSelectedTask || !canMoveSelectedTask) && (
+            <div
+              style={{
+                marginBottom: '18px',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                backgroundColor: 'rgba(245, 158, 11, 0.12)',
+                border: '1px solid rgba(245, 158, 11, 0.4)',
+                color: 'var(--text-primary)',
+                fontSize: '0.88rem',
+                lineHeight: 1.45
+              }}
+            >
+              {!canEditSelectedTask && !canMoveSelectedTask
+                ? 'Visualização somente leitura: as configurações atuais da organização permitem que membros alterem ou movam apenas tarefas criadas por eles mesmos ou nas quais estejam atribuídos como responsáveis.'
+                : !canEditSelectedTask
+                  ? 'Edição de conteúdo bloqueada para esta tarefa: você pode atualizar apenas o status, conforme as regras da organização para o cargo Membro.'
+                  : 'Movimentação de status bloqueada para esta tarefa conforme as regras da organização para o cargo Membro.'}
+            </div>
+          )}
+
           <div className={styles.layoutGrid}>
             <div className={styles.primarySection}>
               <div className={styles.field}>
                 <label>TÍTULO DO ITEM</label>
                 <input 
-                  type="text" required disabled={!selectedTaskId}
+                  type="text" required disabled={!selectedTaskId || !canEditSelectedTask}
                   value={taskData.titulo} 
                   onChange={(e) => setTaskData({...taskData, titulo: e.target.value})}
                 />
@@ -301,7 +360,7 @@ export default function EditTasks() {
               <div className={styles.field}>
                 <label>DOCUMENTAÇÃO / DESCRIÇÃO</label>
                 <textarea 
-                  rows="4" disabled={!selectedTaskId}
+                  rows="4" disabled={!selectedTaskId || !canEditSelectedTask}
                   value={taskData.descricao}
                   onChange={(e) => setTaskData({...taskData, descricao: e.target.value})}
                 ></textarea>
@@ -314,9 +373,9 @@ export default function EditTasks() {
                     <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Nenhum membro.</span>
                   ) : (
                     teamMembers.map(user => (
-                      <label key={user.id} style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', background: 'var(--bg-card)', padding: '5px 10px', borderRadius: '15px', border: '1px solid var(--border-color)', fontSize: '0.9rem' }}>
+                      <label key={user.id} style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: (!selectedTaskId || !canEditSelectedTask) ? 'not-allowed' : 'pointer', opacity: (!selectedTaskId || !canEditSelectedTask) ? 0.6 : 1, background: 'var(--bg-card)', padding: '5px 10px', borderRadius: '15px', border: '1px solid var(--border-color)', fontSize: '0.9rem' }}>
                         <input 
-                          type="checkbox" className="customCheckbox" disabled={!selectedTaskId}
+                          type="checkbox" className="customCheckbox" disabled={!selectedTaskId || !canEditSelectedTask}
                           checked={taskData.idsResponsaveis.includes(user.id)}
                           onChange={() => handleCheckboxChange(user.id)}
                         />
@@ -330,7 +389,7 @@ export default function EditTasks() {
             <div className={styles.sidebarSection}>
               <div className={styles.field}>
                 <label>PRIORIDADE</label>
-                <select value={taskData.prioridade} required disabled={!selectedTaskId} onChange={(e) => setTaskData({...taskData, prioridade: e.target.value})}>
+                <select value={taskData.prioridade} required disabled={!selectedTaskId || !canEditSelectedTask} onChange={(e) => setTaskData({...taskData, prioridade: e.target.value})}>
                   <option value="" disabled>Nível de urgência</option>
                   <option value="alta">ALTA</option>
                   <option value="media">MÉDIA</option>
@@ -343,7 +402,7 @@ export default function EditTasks() {
                 <select
                   value={taskData.status}
                   required
-                  disabled={!selectedTaskId || (selectedTask?.status === 'concluida' && !canReturnTask)}
+                  disabled={!selectedTaskId || !canMoveSelectedTask || (selectedTask?.status === 'concluida' && !canReturnTask)}
                   onChange={(e) => setTaskData({...taskData, status: e.target.value})}
                 >
                   <option value="pendente">Pendente</option>
@@ -393,7 +452,11 @@ export default function EditTasks() {
                 </button>
               )}
             </div>
-            <button type="submit" className={styles.primaryBtn} disabled={isLoading || !selectedTaskId}>
+            <button
+              type="submit"
+              className={styles.primaryBtn}
+              disabled={isLoading || !selectedTaskId || (!canEditSelectedTask && !canMoveSelectedTask)}
+            >
               {isLoading ? 'Salvando...' : 'Salvar Edição'}
             </button>
           </footer>
