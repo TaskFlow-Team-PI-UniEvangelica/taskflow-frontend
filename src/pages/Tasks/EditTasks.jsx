@@ -3,30 +3,73 @@ import { OrganizationContext } from '../../context/OrganizationContext';
 import { useAuth } from 'react-oidc-context';
 import { useLocation } from 'react-router-dom';
 import styles from './Tasks.module.css'; 
-import { FaCheckCircle, FaCalendarAlt, FaUsers } from 'react-icons/fa'; 
+import { FaCheckCircle, FaCalendarAlt, FaUsers, FaTrashAlt } from 'react-icons/fa'; 
+import TaskTimeline from '../../components/TaskHistory/TaskTimeline';
+import DeletedTasksModal from '../../components/TaskHistory/DeletedTasksModal';
 
 export default function EditTasks() {
   const auth = useAuth();
-  const { currentOrg } = useContext(OrganizationContext);
+  const { currentOrg, currentUser } = useContext(OrganizationContext);
   const location = useLocation();
   const [tasks, setTasks] = useState([]);
   const [teamMembers, setTeamMembers] = useState([]);
   
   const [showSuccess, setShowSuccess] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('Tarefa atualizada com sucesso.');
   const [erro, setErro] = useState(null); 
   const [isLoading, setIsLoading] = useState(false); 
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
+  const [showDeletedModal, setShowDeletedModal] = useState(false);
 
   const [selectedTaskId, setSelectedTaskId] = useState('');
 
-  // Adicionado 'status' no state inicial
   const [taskData, setTaskData] = useState({
     titulo: '', descricao: '', prioridade: '', prazo: '', status: '', idsResponsaveis: []
   });
 
+  const userRole = currentOrg?.myRole || currentOrg?.userRole;
+  const isAboveMember = ['OWNER', 'SUB_OWNER', 'MANAGER'].includes(userRole);
+
+  const selectedTask = tasks.find(t => t.id.toString() === selectedTaskId) || null;
+
+  const isOwnTask = Boolean(
+    selectedTask &&
+    currentUser &&
+    ((selectedTask.criadorId != null && Number(selectedTask.criadorId) === Number(currentUser.id)) ||
+     (selectedTask.nomeCriador && currentUser.nome && selectedTask.nomeCriador === currentUser.nome))
+  );
+
+  // Regra de exclusão:
+  // - Cargos acima de MEMBER (OWNER, SUB_OWNER, MANAGER) sempre podem excluir qualquer task.
+  // - Cargo MEMBER pode excluir todas se membersCanDeleteTasks=true, ou apenas a própria se membersCanCreateTasks=true && membersCanDeleteOwnTasks=true.
+  const canDeleteSelectedTask = Boolean(
+    selectedTask &&
+    (isAboveMember ||
+      currentOrg?.membersCanDeleteTasks === true ||
+      (currentOrg?.membersCanCreateTasks !== false &&
+        currentOrg?.membersCanDeleteOwnTasks === true &&
+        isOwnTask))
+  );
+
+  const canChangeDeadline = Boolean(
+    currentOrg && (isAboveMember || currentOrg.membersCanChangeDeadlines === true)
+  );
+
+  const canReturnTask = Boolean(
+    currentOrg && (isAboveMember || currentOrg.membersCanReturnTasks === true)
+  );
+
+  // Recarrega a lista e limpa a seleção APENAS quando o ID da organização muda (evita flicker no hot reload)
   useEffect(() => {
     fetchTasks();
-    if (currentOrg) fetchUsers();
-  }, []);
+    if (currentOrg?.id) {
+      fetchUsers();
+    } else {
+      setTeamMembers([]);
+    }
+    setSelectedTaskId('');
+    setTaskData({ titulo: '', descricao: '', prioridade: '', prazo: '', status: '', idsResponsaveis: [] });
+  }, [currentOrg?.id, auth?.user?.access_token]);
 
   useEffect(() => {
     if (location.state?.taskId && tasks.length > 0) {
@@ -37,7 +80,7 @@ export default function EditTasks() {
   const fetchTasks = async () => {
     try {
       const token = auth?.user?.access_token;
-      if (!currentOrg) return setTasks([]);
+      if (!currentOrg?.id || !token) return setTasks([]);
       const response = await fetch(`${import.meta.env.VITE_API_URL}/task?organizationId=${currentOrg.id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -50,6 +93,7 @@ export default function EditTasks() {
   const fetchUsers = async () => {
     try {
       const token = auth?.user?.access_token;
+      if (!currentOrg?.id || !token) return;
       const response = await fetch(`${import.meta.env.VITE_API_URL}/organization/${currentOrg.id}/members`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
@@ -61,17 +105,27 @@ export default function EditTasks() {
 
   const handleTaskSelection = (taskId) => {
     setSelectedTaskId(taskId);
+    setErro(null);
     if (taskId) {
       const taskToEdit = tasks.find(t => t.id.toString() === taskId);
       if (taskToEdit) {
-        const prazoFormatado = taskToEdit.prazo ? new Date(taskToEdit.prazo).toISOString().split('T')[0] : '';
+        const prazoFormatado = taskToEdit.prazo
+          ? (Array.isArray(taskToEdit.prazo)
+              ? `${taskToEdit.prazo[0]}-${String(taskToEdit.prazo[1]).padStart(2, '0')}-${String(taskToEdit.prazo[2]).padStart(2, '0')}`
+              : String(taskToEdit.prazo).split('T')[0])
+          : '';
+        const idsAtuais = Array.isArray(taskToEdit.idsResponsaveis) && taskToEdit.idsResponsaveis.length > 0
+          ? taskToEdit.idsResponsaveis
+          : teamMembers
+              .filter(m => Array.isArray(taskToEdit.nomesResponsaveis) && taskToEdit.nomesResponsaveis.includes(m.nome))
+              .map(m => m.id);
         setTaskData({
           titulo: taskToEdit.titulo,
           descricao: taskToEdit.descricao || '',
           prioridade: String(taskToEdit.prioridade).toLowerCase(),
           prazo: prazoFormatado,
-          status: String(taskToEdit.status).toLowerCase(), // Puxa o status da task selecionada
-          idsResponsaveis: [] 
+          status: String(taskToEdit.status).toLowerCase(),
+          idsResponsaveis: idsAtuais
         });
       }
     } else {
@@ -109,7 +163,7 @@ export default function EditTasks() {
         body: JSON.stringify({
           titulo: taskData.titulo,
           descricao: taskData.descricao,
-          status: taskData.status, // Envia o status atualizado
+          status: taskData.status,
           prioridade: taskData.prioridade,
           prazo: taskData.prazo,
           idsResponsaveis: taskData.idsResponsaveis
@@ -117,11 +171,52 @@ export default function EditTasks() {
       });
 
       if (response.ok) {
+        setSuccessMessage('Tarefa atualizada com sucesso.');
         setShowSuccess(true);
-        fetchTasks();
+        await fetchTasks();
+        setHistoryRefreshKey(prev => prev + 1);
         setTimeout(() => setShowSuccess(false), 2500);
       } else {
-        setErro('Erro ao atualizar a tarefa.');
+        const errData = await response.json().catch(() => null);
+        setErro(errData?.message || 'Erro ao atualizar a tarefa.');
+      }
+    } catch (_error) {
+      setErro('Falha na comunicação com o servidor.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteTask = async () => {
+    if (!selectedTaskId || !selectedTask) return;
+    const labelNum = selectedTask.taskNumber ?? selectedTask.id;
+    if (!window.confirm(`Tem certeza que deseja excluir a tarefa "${labelNum} - ${taskData.titulo}"?`)) {
+      return;
+    }
+
+    setErro(null);
+    setIsLoading(true);
+
+    try {
+      const token = auth?.user?.access_token;
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/task/${selectedTaskId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+
+      if (response.ok) {
+        setSuccessMessage('Tarefa excluída com sucesso.');
+        setShowSuccess(true);
+        setSelectedTaskId('');
+        setTaskData({ titulo: '', descricao: '', prioridade: '', prazo: '', status: '', idsResponsaveis: [] });
+        await fetchTasks();
+        setHistoryRefreshKey(prev => prev + 1);
+        setTimeout(() => setShowSuccess(false), 2500);
+      } else {
+        const errData = await response.json().catch(() => null);
+        setErro(errData?.message || 'Você não possui permissão para excluir esta tarefa.');
       }
     } catch (_error) {
       setErro('Falha na comunicação com o servidor.');
@@ -136,21 +231,44 @@ export default function EditTasks() {
         <div className={styles.toastContainer}>
           <div className={styles.successToast}>
             <FaCheckCircle className={styles.successIcon} />
-            <div className={styles.toastText}><strong>Sucesso!</strong><span>Tarefa atualizada com sucesso.</span></div>
+            <div className={styles.toastText}><strong>Sucesso!</strong><span>{successMessage}</span></div>
           </div>
         </div>
       )}
 
-      {erro && (
-        <div style={{ backgroundColor: '#ff4d4f', color: 'white', padding: '10px', borderRadius: '5px', marginBottom: '15px', textAlign: 'center' }}>
-          {erro}
-        </div>
-      )}
-
       <div className={styles.mainCard}>
-        <header className={styles.header}>
-          <h1 className={styles.title}>Editar Tarefa</h1>
-          <p className={styles.subtitle}>Atualize os detalhes e o status da tarefa selecionada.</p>
+        {erro && (
+          <div style={{ backgroundColor: '#ff4d4f', color: 'white', padding: '10px', borderRadius: '5px', marginBottom: '15px', textAlign: 'center' }}>
+            {erro}
+          </div>
+        )}
+
+        <header className={styles.header} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+          <div>
+            <h1 className={styles.title}>Editar Tarefa</h1>
+            <p className={styles.subtitle}>Atualize os detalhes, o status e acompanhe o histórico completo de auditoria da tarefa selecionada.</p>
+          </div>
+          {isAboveMember && (
+            <button
+              type="button"
+              onClick={() => setShowDeletedModal(true)}
+              style={{
+                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                color: '#ef4444',
+                border: '1px solid rgba(239, 68, 68, 0.35)',
+                padding: '10px 16px',
+                borderRadius: '8px',
+                fontWeight: 600,
+                cursor: 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '0.88rem'
+              }}
+            >
+              <FaTrashAlt /> Histórico de Excluídas
+            </button>
+          )}
         </header>
         
         <form className={styles.form} onSubmit={handleUpdate}>
@@ -164,7 +282,7 @@ export default function EditTasks() {
             >
               <option value="">Escolha uma tarefa para editar</option>
               {tasks.map(t => (
-                <option key={t.id} value={t.id}>#{t.id} - {t.titulo}</option>
+                <option key={t.id} value={t.id}>{t.taskNumber ?? t.id} - {t.titulo}</option>
               ))}
             </select>
           </div>
@@ -202,7 +320,7 @@ export default function EditTasks() {
                           checked={taskData.idsResponsaveis.includes(user.id)}
                           onChange={() => handleCheckboxChange(user.id)}
                         />
-                        {user.nome.trim().split(' ').length > 1 ? `${user.nome.trim().split(' ')[0]} ${user.nome.trim().split(' ')[1][0]}.` : user.nome.trim().split(' ')[0]} </label>
+                        {user.nome.trim().split(/\s+/).length > 1 ? `${user.nome.trim().split(/\s+/)[0]} ${user.nome.trim().split(/\s+/)[1][0]}.` : user.nome.trim().split(/\s+/)[0]} </label>
                     ))
                   )}
                 </div>
@@ -220,10 +338,14 @@ export default function EditTasks() {
                 </select>
               </div>
 
-              {/* CAMPO DE STATUS ADICIONADO AQUI */}
               <div className={styles.field}>
                 <label>STATUS ATUAL</label>
-                <select value={taskData.status} required disabled={!selectedTaskId} onChange={(e) => setTaskData({...taskData, status: e.target.value})}>
+                <select
+                  value={taskData.status}
+                  required
+                  disabled={!selectedTaskId || (selectedTask?.status === 'concluida' && !canReturnTask)}
+                  onChange={(e) => setTaskData({...taskData, status: e.target.value})}
+                >
                   <option value="pendente">Pendente</option>
                   <option value="em_andamento">Em Andamento</option>
                   <option value="concluida">Concluída</option>
@@ -233,21 +355,68 @@ export default function EditTasks() {
               <div className={styles.field}>
                 <label><FaCalendarAlt /> PRAZO DE ENTREGA</label>
                 <input 
-                  type="date" required disabled={!selectedTaskId}
+                  type="date"
+                  disabled={!selectedTaskId || !canChangeDeadline}
                   value={taskData.prazo}
                   onChange={(e) => setTaskData({...taskData, prazo: e.target.value})} 
                 />
+                {selectedTaskId && !canChangeDeadline && (
+                  <small style={{ color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
+                    Apenas cargos autorizados podem alterar o prazo nesta organização.
+                  </small>
+                )}
               </div>
             </div>
           </div>
 
-          <footer className={styles.footer} style={{ justifyContent: 'flex-end', display: 'flex' }}>
+          <footer className={styles.footer} style={{ justifyContent: 'space-between', display: 'flex', alignItems: 'center' }}>
+            <div>
+              {selectedTaskId && canDeleteSelectedTask && (
+                <button
+                  type="button"
+                  onClick={handleDeleteTask}
+                  disabled={isLoading}
+                  style={{
+                    backgroundColor: 'rgba(239, 68, 68, 0.12)',
+                    color: '#ef4444',
+                    border: '1px solid rgba(239, 68, 68, 0.35)',
+                    padding: '12px 20px',
+                    borderRadius: '6px',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <FaTrashAlt /> Excluir Tarefa
+                </button>
+              )}
+            </div>
             <button type="submit" className={styles.primaryBtn} disabled={isLoading || !selectedTaskId}>
               {isLoading ? 'Salvando...' : 'Salvar Edição'}
             </button>
           </footer>
         </form>
+
+        {selectedTaskId && (
+          <TaskTimeline
+            taskId={selectedTaskId}
+            taskNumber={selectedTask?.taskNumber}
+            taskTitle={taskData.titulo}
+            token={auth?.user?.access_token}
+            refreshKey={historyRefreshKey}
+          />
+        )}
       </div>
+
+      <DeletedTasksModal
+        isOpen={showDeletedModal}
+        onClose={() => setShowDeletedModal(false)}
+        organization={currentOrg}
+        token={auth?.user?.access_token}
+        refreshKey={historyRefreshKey}
+      />
     </div>
   );
 }

@@ -16,9 +16,19 @@ export default function Tasks() {
     titulo: '', descricao: '', prioridade: '', prazo: '', idsResponsaveis: [] 
   });
 
+  const userRole = currentOrg?.myRole || currentOrg?.userRole;
+  const isAboveMember = ['OWNER', 'SUB_OWNER', 'MANAGER'].includes(userRole);
+  const canCreateTasks = Boolean(
+    currentOrg && (isAboveMember || currentOrg.membersCanCreateTasks !== false)
+  );
+  const canChangeDeadline = Boolean(
+    currentOrg && (isAboveMember || currentOrg.membersCanChangeDeadlines === true)
+  );
+
+  // Recarrega membros apenas quando o ID da organização ativa muda (evita flicker no hot reload)
   useEffect(() => {
-    if (currentOrg) fetchUsers(); 
-  }, [currentOrg]);
+    if (currentOrg?.id) fetchUsers(); 
+  }, [currentOrg?.id]);
 
   const fetchUsers = async () => {
     try {
@@ -46,6 +56,7 @@ export default function Tasks() {
     e.preventDefault();
     setErro(null);
     if (!currentOrg) return setErro("Selecione uma organização primeiro.");
+    if (!canCreateTasks) return setErro("A criação de tarefas por membros está desabilitada nesta organização.");
     setIsLoading(true);
 
     try {
@@ -64,7 +75,8 @@ export default function Tasks() {
         setTaskData({ titulo: '', descricao: '', prioridade: '', prazo: '', idsResponsaveis: [] });
         setTimeout(() => setShowSuccess(false), 2500);
       } else {
-        setErro('Erro ao registrar a tarefa no sistema.');
+        const errData = await response.json().catch(() => null);
+        setErro(errData?.message || 'Erro ao registrar a tarefa no sistema.');
       }
     } catch (_error) {
       setErro('Falha na comunicação com o servidor.');
@@ -98,6 +110,12 @@ export default function Tasks() {
           <h1 className={styles.title}>Nova Tarefa</h1>
           <p className={styles.subtitle}>Configure os parâmetros técnicos da atividade.</p>
         </header>
+
+        {currentOrg && !canCreateTasks && (
+          <div style={{ backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontWeight: 500 }}>
+            O Dono da organização desabilitou a criação de novas tarefas para o cargo de Membro.
+          </div>
+        )}
         
         <form className={styles.form} onSubmit={handleCreate}>
           <div className={styles.layoutGrid}>
@@ -106,6 +124,7 @@ export default function Tasks() {
                 <label>TÍTULO DO ITEM</label>
                 <input 
                   type="text" placeholder="Defina o objetivo principal..." required 
+                  disabled={!canCreateTasks}
                   value={taskData.titulo} 
                   onChange={(e) => setTaskData({...taskData, titulo: e.target.value})}
                 />
@@ -115,6 +134,7 @@ export default function Tasks() {
                 <label>DOCUMENTAÇÃO / DESCRIÇÃO</label>
                 <textarea 
                   placeholder="Detalhes técnicos e requisitos..." rows="4"
+                  disabled={!canCreateTasks}
                   value={taskData.descricao}
                   onChange={(e) => setTaskData({...taskData, descricao: e.target.value})}
                 ></textarea>
@@ -130,10 +150,11 @@ export default function Tasks() {
                       <label key={user.id} style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', background: 'var(--bg-card)', padding: '5px 10px', borderRadius: '15px', border: '1px solid var(--border-color)', fontSize: '0.9rem' }}>
                         <input 
                           type="checkbox" className="customCheckbox" 
+                          disabled={!canCreateTasks}
                           checked={taskData.idsResponsaveis.includes(user.id)}
                           onChange={() => handleCheckboxChange(user.id)}
                         />
-                        {user.nome.trim().split(' ').length > 1 ? `${user.nome.trim().split(' ')[0]} ${user.nome.trim().split(' ')[1][0]}.` : user.nome.trim().split(' ')[0]} </label>
+                        {user.nome.trim().split(/\s+/).length > 1 ? `${user.nome.trim().split(/\s+/)[0]} ${user.nome.trim().split(/\s+/)[1][0]}.` : user.nome.trim().split(/\s+/)[0]} </label>
                     ))
                   )}
                 </div>
@@ -143,7 +164,7 @@ export default function Tasks() {
             <div className={styles.sidebarSection}>
               <div className={styles.field}>
                 <label>PRIORIDADE</label>
-                <select value={taskData.prioridade} required onChange={(e) => setTaskData({...taskData, prioridade: e.target.value})}>
+                <select value={taskData.prioridade} required disabled={!canCreateTasks} onChange={(e) => setTaskData({...taskData, prioridade: e.target.value})}>
                   <option value="" disabled>Nível de urgência</option>
                   <option value="alta">ALTA</option>
                   <option value="media">MÉDIA</option>
@@ -154,7 +175,8 @@ export default function Tasks() {
               <div className={styles.field}>
                 <label><FaCalendarAlt /> PRAZO DE ENTREGA</label>
                 <input 
-                  type="date" required 
+                  type="date"
+                  disabled={!canCreateTasks || !canChangeDeadline}
                   value={taskData.prazo}
                   onChange={(e) => setTaskData({...taskData, prazo: e.target.value})} 
                 />
@@ -163,7 +185,7 @@ export default function Tasks() {
           </div>
 
           <footer className={styles.footer} style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button type="submit" className={styles.primaryBtn} disabled={isLoading}>
+            <button type="submit" className={styles.primaryBtn} disabled={isLoading || !canCreateTasks}>
               {isLoading ? 'Salvando...' : 'Salvar Tarefa'}
             </button>
           </footer>

@@ -12,7 +12,7 @@ export default function Dashboard() {
   const [tasks, setTasks] = useState([]);
   
   const parseData = (prazo) => {
-    if (!prazo) return new Date();
+    if (!prazo) return null;
     if (Array.isArray(prazo)) {
       return new Date(prazo[0], prazo[1] - 1, prazo[2]);
     }
@@ -34,7 +34,7 @@ export default function Dashboard() {
         } else if (statusNormalizado === "em_andamento") {
           contadores.andamento++;
         } else {
-          if (dataPrazo < hoje) {
+          if (dataPrazo && dataPrazo < hoje) {
             contadores.atrasadas++;
           } else {
             contadores.pendentes++;
@@ -72,7 +72,11 @@ export default function Dashboard() {
       if (!token) return;
 
       try {
-        if (!currentOrg) return setTasks([]);
+        if (!currentOrg?.id) {
+          setTasks([]);
+          setStats({ concluidas: 0, pendentes: 0, atrasadas: 0, andamento: 0 });
+          return;
+        }
         const response = await fetch(`${import.meta.env.VITE_API_URL}/task?organizationId=${currentOrg.id}`, {
           method: 'GET',
           headers: { 'Authorization': `Bearer ${token}` }
@@ -90,9 +94,7 @@ export default function Dashboard() {
 
     fetchUserProfile();
     fetchTasks();
-  }, [navigate]);
-
-
+  }, [navigate, currentOrg?.id, auth?.user?.access_token]);
 
   // Cores injetadas diretamente (Verde, Amarelo, Vermelho, Azul)
   const getCorDaBolinha = (status, prazo) => {
@@ -104,7 +106,7 @@ export default function Dashboard() {
     const hoje = new Date();
     hoje.setHours(0, 0, 0, 0);
     
-    if (dataPrazo < hoje) return '#ef4444'; // Atrasada fica vermelha
+    if (dataPrazo && dataPrazo < hoje) return '#ef4444'; // Atrasada fica vermelha
     return 'var(--primary-blue)'; // Pendente em dia fica azul
   };
 
@@ -142,37 +144,38 @@ export default function Dashboard() {
           </button>
         </div>
 
-        {/* --- ADICIONADO ROLAGEM INFINITA AQUI (maxHeight e overflowY) --- */}
         <div className={styles.tasksTable} style={{ maxHeight: '450px', overflowY: 'auto', paddingRight: '10px' }}>
           {!Array.isArray(tasks) || tasks.length === 0 ? (
             <p style={{ color: 'var(--text-secondary)' }}>Nenhuma tarefa cadastrada ainda.</p>
           ) : (
-            // Removi o .slice() - Agora lista TODAS as tarefas com scroll
-            tasks.map((task) => (
-              <div key={task.id} className={styles.taskRow} style={{ marginBottom: '10px' }}>
-                <div className={styles.taskMainInfo}>
-                  {/* Bolinha com cor dinâmica */}
-                  <div className={styles.statusIndicator} style={{ backgroundColor: getCorDaBolinha(task.status, task.prazo), width: '12px', height: '12px', borderRadius: '50%' }}></div>
+            tasks.map((task) => {
+              const dataPrazo = parseData(task.prazo);
+              const isTaskOverdue = dataPrazo && dataPrazo < new Date(new Date().setHours(0,0,0,0)) && String(task.status).toLowerCase() !== 'concluida';
+              return (
+                <div key={task.id} className={styles.taskRow} style={{ marginBottom: '10px' }}>
+                  <div className={styles.taskMainInfo}>
+                    <div className={styles.statusIndicator} style={{ backgroundColor: getCorDaBolinha(task.status, task.prazo), width: '12px', height: '12px', borderRadius: '50%' }}></div>
+                    <div>
+                      <strong>{task.taskNumber ? `${task.taskNumber} - ${task.titulo}` : task.titulo}</strong>
+                      <p>Status: {String(task.status).replace('_', ' ').toUpperCase()}</p>
+                    </div>
+                  </div>
+                  
+                  <div className={styles.taskDeadline}>
+                    {dataPrazo ? dataPrazo.toLocaleDateString('pt-BR') : 'Sem prazo'}
+                    {isTaskOverdue && (
+                      <span className={styles.overdueBadge} style={{ marginLeft: '10px' }}>Atrasada</span>
+                    )}
+                  </div>
+
                   <div>
-                    <strong>{task.titulo}</strong>
-                    <p>Status: {String(task.status).replace('_', ' ').toUpperCase()}</p>
+                    <span className={`${styles.priorityTag} ${styles[String(task.prioridade).toLowerCase()]}`}>
+                      {task.prioridade}
+                    </span>
                   </div>
                 </div>
-                
-                <div className={styles.taskDeadline}>
-                  {parseData(task.prazo).toLocaleDateString('pt-BR')}
-                  {parseData(task.prazo) < new Date(new Date().setHours(0,0,0,0)) && String(task.status).toLowerCase() !== 'concluida' && (
-                    <span className={styles.overdueBadge} style={{ marginLeft: '10px' }}>Atrasada</span>
-                  )}
-                </div>
-
-                <div>
-                  <span className={`${styles.priorityTag} ${styles[String(task.prioridade).toLowerCase()]}`}>
-                    {task.prioridade}
-                  </span>
-                </div>
-              </div>
-            ))
+              );
+            })
           )}
         </div>
       </section>
