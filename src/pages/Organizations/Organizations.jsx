@@ -24,6 +24,10 @@ export default function Organizations() {
   const [membersCanCreateTasks, setMembersCanCreateTasks] = useState(true);
   const [membersCanDeleteTasks, setMembersCanDeleteTasks] = useState(false);
   const [membersCanDeleteOwnTasks, setMembersCanDeleteOwnTasks] = useState(false);
+  const [membersCanEditAllTasks, setMembersCanEditAllTasks] = useState(false);
+  const [membersCanEditOwnOrAssignedTasks, setMembersCanEditOwnOrAssignedTasks] = useState(true);
+  const [membersCanMoveAllTasks, setMembersCanMoveAllTasks] = useState(false);
+  const [membersCanMoveOwnOrAssignedTasks, setMembersCanMoveOwnOrAssignedTasks] = useState(true);
   const [membersCanChangeDeadlines, setMembersCanChangeDeadlines] = useState(false);
   const [membersCanReturnTasks, setMembersCanReturnTasks] = useState(false);
   const [deletedTasksRetentionDays, setDeletedTasksRetentionDays] = useState(7);
@@ -36,11 +40,15 @@ export default function Organizations() {
   const [editMembersCanCreateTasks, setEditMembersCanCreateTasks] = useState(true);
   const [editMembersCanDeleteTasks, setEditMembersCanDeleteTasks] = useState(false);
   const [editMembersCanDeleteOwnTasks, setEditMembersCanDeleteOwnTasks] = useState(false);
+  const [editMembersCanEditAllTasks, setEditMembersCanEditAllTasks] = useState(false);
+  const [editMembersCanEditOwnOrAssignedTasks, setEditMembersCanEditOwnOrAssignedTasks] = useState(true);
+  const [editMembersCanMoveAllTasks, setEditMembersCanMoveAllTasks] = useState(false);
+  const [editMembersCanMoveOwnOrAssignedTasks, setEditMembersCanMoveOwnOrAssignedTasks] = useState(true);
   const [editMembersCanChangeDeadlines, setEditMembersCanChangeDeadlines] = useState(false);
   const [editMembersCanReturnTasks, setEditMembersCanReturnTasks] = useState(false);
   const [editDeletedTasksRetentionDays, setEditDeletedTasksRetentionDays] = useState(7);
 
-  // Handlers de exclusividade mútua para o Modal de Criação
+  // --- Handlers de exclusividade mútua para o Modal de Criação ---
   const handleToggleCreateTasksNew = (checked) => {
     setMembersCanCreateTasks(checked);
     if (!checked) {
@@ -63,7 +71,44 @@ export default function Organizations() {
     }
   };
 
-  // Handlers de exclusividade mútua para o Modal de Edição
+  const handleToggleEditOwnOrAssignedNew = (checked) => {
+    setMembersCanEditOwnOrAssignedTasks(checked);
+    if (checked) {
+      setMembersCanEditAllTasks(false);
+    }
+  };
+
+  const handleToggleEditAllNew = (checked) => {
+    setMembersCanEditAllTasks(checked);
+    if (checked) {
+      setMembersCanEditOwnOrAssignedTasks(false);
+    }
+  };
+
+  const handleToggleMoveOwnOrAssignedNew = (checked) => {
+    setMembersCanMoveOwnOrAssignedTasks(checked);
+    if (checked) {
+      setMembersCanMoveAllTasks(false);
+    } else if (!membersCanMoveAllTasks) {
+      setMembersCanReturnTasks(false);
+    }
+  };
+
+  const handleToggleMoveAllNew = (checked) => {
+    setMembersCanMoveAllTasks(checked);
+    if (checked) {
+      setMembersCanMoveOwnOrAssignedTasks(false);
+    } else if (!membersCanMoveOwnOrAssignedTasks) {
+      setMembersCanReturnTasks(false);
+    }
+  };
+
+  const handleToggleReturnTasksNew = (checked) => {
+    if (!membersCanMoveOwnOrAssignedTasks && !membersCanMoveAllTasks) return;
+    setMembersCanReturnTasks(checked);
+  };
+
+  // --- Handlers de exclusividade mútua para o Modal de Edição ---
   const handleToggleCreateTasksEdit = (checked) => {
     setEditMembersCanCreateTasks(checked);
     if (!checked) {
@@ -86,17 +131,66 @@ export default function Organizations() {
     }
   };
 
+  const handleToggleEditOwnOrAssignedEdit = (checked) => {
+    setEditMembersCanEditOwnOrAssignedTasks(checked);
+    if (checked) {
+      setEditMembersCanEditAllTasks(false);
+    }
+  };
+
+  const handleToggleEditAllEdit = (checked) => {
+    setEditMembersCanEditAllTasks(checked);
+    if (checked) {
+      setEditMembersCanEditOwnOrAssignedTasks(false);
+    }
+  };
+
+  const handleToggleMoveOwnOrAssignedEdit = (checked) => {
+    setEditMembersCanMoveOwnOrAssignedTasks(checked);
+    if (checked) {
+      setEditMembersCanMoveAllTasks(false);
+    } else if (!editMembersCanMoveAllTasks) {
+      setEditMembersCanReturnTasks(false);
+    }
+  };
+
+  const handleToggleMoveAllEdit = (checked) => {
+    setEditMembersCanMoveAllTasks(checked);
+    if (checked) {
+      setEditMembersCanMoveOwnOrAssignedTasks(false);
+    } else if (!editMembersCanMoveOwnOrAssignedTasks) {
+      setEditMembersCanReturnTasks(false);
+    }
+  };
+
+  const handleToggleReturnTasksEdit = (checked) => {
+    if (!editMembersCanMoveOwnOrAssignedTasks && !editMembersCanMoveAllTasks) return;
+    setEditMembersCanReturnTasks(checked);
+  };
+
   const openEditModal = (org) => {
     setOrgToEdit(org);
     setEditOrgName(org.nome);
     const canCreate = org.membersCanCreateTasks !== false;
     const canDeleteAll = org.membersCanDeleteTasks === true;
     const canDeleteOwn = canCreate && !canDeleteAll && org.membersCanDeleteOwnTasks === true;
+
+    const canEditAll = org.membersCanEditAllTasks === true;
+    const canEditOwnOrAssigned = !canEditAll && (org.membersCanEditOwnOrAssignedTasks !== false);
+
+    const canMoveAll = org.membersCanMoveAllTasks === true;
+    const canMoveOwnOrAssigned = !canMoveAll && (org.membersCanMoveOwnOrAssignedTasks !== false);
+    const anyMove = canMoveAll || canMoveOwnOrAssigned;
+
     setEditMembersCanCreateTasks(canCreate);
     setEditMembersCanDeleteTasks(canDeleteAll);
     setEditMembersCanDeleteOwnTasks(canDeleteOwn);
+    setEditMembersCanEditAllTasks(canEditAll);
+    setEditMembersCanEditOwnOrAssignedTasks(canEditOwnOrAssigned);
+    setEditMembersCanMoveAllTasks(canMoveAll);
+    setEditMembersCanMoveOwnOrAssignedTasks(canMoveOwnOrAssigned);
     setEditMembersCanChangeDeadlines(org.membersCanChangeDeadlines === true);
-    setEditMembersCanReturnTasks(org.membersCanReturnTasks === true);
+    setEditMembersCanReturnTasks(anyMove && org.membersCanReturnTasks === true);
     setEditDeletedTasksRetentionDays(
       org.deletedTasksRetentionDays !== undefined && org.deletedTasksRetentionDays !== null
         ? Number(org.deletedTasksRetentionDays)
@@ -110,13 +204,18 @@ export default function Organizations() {
 
     try {
       const token = auth?.user?.access_token;
+      const anyEditMove = editMembersCanMoveAllTasks || editMembersCanMoveOwnOrAssignedTasks;
       const payload = {
         nome: editOrgName,
         membersCanCreateTasks: editMembersCanCreateTasks,
         membersCanDeleteTasks: editMembersCanDeleteTasks,
         membersCanDeleteOwnTasks: editMembersCanCreateTasks ? editMembersCanDeleteOwnTasks : false,
+        membersCanEditAllTasks: editMembersCanEditAllTasks,
+        membersCanEditOwnOrAssignedTasks: editMembersCanEditAllTasks ? false : editMembersCanEditOwnOrAssignedTasks,
+        membersCanMoveAllTasks: editMembersCanMoveAllTasks,
+        membersCanMoveOwnOrAssignedTasks: editMembersCanMoveAllTasks ? false : editMembersCanMoveOwnOrAssignedTasks,
         membersCanChangeDeadlines: editMembersCanChangeDeadlines,
-        membersCanReturnTasks: editMembersCanReturnTasks
+        membersCanReturnTasks: anyEditMove ? editMembersCanReturnTasks : false
       };
 
       if (orgToEdit.myRole === 'OWNER') {
@@ -177,6 +276,7 @@ export default function Organizations() {
   const handleCreateOrganization = async () => {
     if (!newOrgName.trim()) return;
     const token = auth?.user?.access_token;
+    const anyNewMove = membersCanMoveAllTasks || membersCanMoveOwnOrAssignedTasks;
     
     try {
       const response = await fetch(`${import.meta.env.VITE_API_URL}/organization`, {
@@ -190,8 +290,12 @@ export default function Organizations() {
           membersCanCreateTasks,
           membersCanDeleteTasks,
           membersCanDeleteOwnTasks: membersCanCreateTasks ? membersCanDeleteOwnTasks : false,
+          membersCanEditAllTasks,
+          membersCanEditOwnOrAssignedTasks: membersCanEditAllTasks ? false : membersCanEditOwnOrAssignedTasks,
+          membersCanMoveAllTasks,
+          membersCanMoveOwnOrAssignedTasks: membersCanMoveAllTasks ? false : membersCanMoveOwnOrAssignedTasks,
           membersCanChangeDeadlines,
-          membersCanReturnTasks,
+          membersCanReturnTasks: anyNewMove ? membersCanReturnTasks : false,
           deletedTasksRetentionDays: Number(deletedTasksRetentionDays)
         })
       });
@@ -227,11 +331,47 @@ export default function Organizations() {
     }
   };
 
+  // Trava visual para o Modal de Criação
   const disableNewDeleteOwn = !membersCanCreateTasks || membersCanDeleteTasks;
   const disableNewDeleteAll = membersCanDeleteOwnTasks;
+  const disableNewEditOwn = membersCanEditAllTasks;
+  const disableNewEditAll = membersCanEditOwnOrAssignedTasks;
+  const disableNewMoveOwn = membersCanMoveAllTasks;
+  const disableNewMoveAll = membersCanMoveOwnOrAssignedTasks;
+  const disableNewReturn = !membersCanMoveOwnOrAssignedTasks && !membersCanMoveAllTasks;
 
+  // Trava visual para o Modal de Edição
   const disableEditDeleteOwn = !editMembersCanCreateTasks || editMembersCanDeleteTasks;
   const disableEditDeleteAll = editMembersCanDeleteOwnTasks;
+  const disableEditEditOwn = editMembersCanEditAllTasks;
+  const disableEditEditAll = editMembersCanEditOwnOrAssignedTasks;
+  const disableEditMoveOwn = editMembersCanMoveAllTasks;
+  const disableEditMoveAll = editMembersCanMoveOwnOrAssignedTasks;
+  const disableEditReturn = !editMembersCanMoveOwnOrAssignedTasks && !editMembersCanMoveAllTasks;
+
+  const sectionBoxStyle = {
+    padding: '12px 14px',
+    borderRadius: '8px',
+    border: '1px solid var(--border-color)',
+    backgroundColor: 'var(--bg-app)',
+    marginBottom: '12px'
+  };
+
+  const sectionTitleStyle = {
+    display: 'block',
+    fontSize: '0.9rem',
+    fontWeight: 700,
+    color: 'var(--text-primary)',
+    marginBottom: '4px'
+  };
+
+  const sectionHintStyle = {
+    display: 'block',
+    fontSize: '0.78rem',
+    color: 'var(--text-secondary)',
+    marginBottom: '10px',
+    lineHeight: 1.4
+  };
 
   return (
     <div className={styles.container}>
@@ -290,7 +430,7 @@ export default function Organizations() {
 
       {showCreateModal && (
         <div className={styles.modalOverlay}>
-          <div className={styles.modalBox} style={{maxWidth: '520px'}}>
+          <div className={styles.modalBox} style={{maxWidth: '580px', maxHeight: '90vh', overflowY: 'auto'}}>
             <h3>Criar e Configurar Organização</h3>
             
             <div className={styles.inputGroup} style={{marginBottom: '15px'}}>
@@ -305,67 +445,197 @@ export default function Organizations() {
             </div>
 
             <div style={{marginBottom: '15px'}}>
-              <strong style={{display: 'block', marginBottom: '10px'}}>Configurações de Permissões (Cargo Membro):</strong>
-              
-              <label style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer'}}>
-                <input
-                  type="checkbox"
-                  className="customCheckbox"
-                  checked={membersCanCreateTasks}
-                  onChange={e => handleToggleCreateTasksNew(e.target.checked)}
-                />
-                Membros podem criar tarefas
-              </label>
+              <strong style={{display: 'block', marginBottom: '4px', color: 'var(--text-primary)'}}>
+                Governança de Permissões (Aplicável ao Cargo Membro)
+              </strong>
+              <span style={{display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '12px'}}>
+                Estas regras limitam apenas usuários com cargo <strong>Membro</strong>. Gerentes, Sub-Donos e o Dono possuem permissão total de edição, movimentação e exclusão.
+              </span>
 
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  marginBottom: '8px',
-                  opacity: disableNewDeleteOwn ? 0.5 : 1,
-                  cursor: disableNewDeleteOwn ? 'not-allowed' : 'pointer'
-                }}
-              >
-                <input
-                  type="checkbox"
-                  className="customCheckbox"
-                  checked={membersCanDeleteOwnTasks}
-                  disabled={disableNewDeleteOwn}
-                  onChange={e => handleToggleDeleteOwnNew(e.target.checked)}
-                />
-                Membros podem excluir apenas suas próprias tarefas
-              </label>
-              
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  marginBottom: '8px',
-                  opacity: disableNewDeleteAll ? 0.5 : 1,
-                  cursor: disableNewDeleteAll ? 'not-allowed' : 'pointer'
-                }}
-              >
-                <input
-                  type="checkbox"
-                  className="customCheckbox"
-                  checked={membersCanDeleteTasks}
-                  disabled={disableNewDeleteAll}
-                  onChange={e => handleToggleDeleteAllNew(e.target.checked)}
-                />
-                Membros podem excluir todas as tarefas
-              </label>
+              {/* 1. Criação e Prazos */}
+              <div style={sectionBoxStyle}>
+                <span style={sectionTitleStyle}>1. Criação e Prazos de Entrega</span>
+                <span style={sectionHintStyle}>
+                  Defina se os membros podem cadastrar novas tarefas na organização e se podem definir ou alterar datas limite.
+                </span>
+                <label style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer'}}>
+                  <input
+                    type="checkbox"
+                    className="customCheckbox"
+                    checked={membersCanCreateTasks}
+                    onChange={e => handleToggleCreateTasksNew(e.target.checked)}
+                  />
+                  Membros podem criar tarefas
+                </label>
 
-              <label style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer'}}>
-                <input type="checkbox" className="customCheckbox" checked={membersCanChangeDeadlines} onChange={e => setMembersCanChangeDeadlines(e.target.checked)} />
-                Membros podem alterar prazos
-              </label>
+                <label style={{display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer'}}>
+                  <input
+                    type="checkbox"
+                    className="customCheckbox"
+                    checked={membersCanChangeDeadlines}
+                    onChange={e => setMembersCanChangeDeadlines(e.target.checked)}
+                  />
+                  Membros podem alterar prazos de entrega
+                </label>
+              </div>
 
-              <label style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px', cursor: 'pointer'}}>
-                <input type="checkbox" className="customCheckbox" checked={membersCanReturnTasks} onChange={e => setMembersCanReturnTasks(e.target.checked)} />
-                Membros podem retornar status de tarefas concluídas
-              </label>
+              {/* 2. Edição de Tarefas */}
+              <div style={sectionBoxStyle}>
+                <span style={sectionTitleStyle}>2. Edição de Tarefas (Aba Editar Tarefa)</span>
+                <span style={sectionHintStyle}>
+                  Escolha se os membros podem alterar apenas tarefas que criaram/nas quais estão como responsáveis ou qualquer tarefa da organização. Ativar uma opção bloqueia automaticamente a outra.
+                </span>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '8px',
+                    opacity: disableNewEditOwn ? 0.5 : 1,
+                    cursor: disableNewEditOwn ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    className="customCheckbox"
+                    checked={membersCanEditOwnOrAssignedTasks}
+                    disabled={disableNewEditOwn}
+                    onChange={e => handleToggleEditOwnOrAssignedNew(e.target.checked)}
+                  />
+                  Membros podem alterar apenas tarefas que criaram ou nas quais sejam responsáveis
+                </label>
+
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    opacity: disableNewEditAll ? 0.5 : 1,
+                    cursor: disableNewEditAll ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    className="customCheckbox"
+                    checked={membersCanEditAllTasks}
+                    disabled={disableNewEditAll}
+                    onChange={e => handleToggleEditAllNew(e.target.checked)}
+                  />
+                  Membros podem alterar todas as tarefas
+                </label>
+              </div>
+
+              {/* 3. Movimentação e Retorno */}
+              <div style={sectionBoxStyle}>
+                <span style={sectionTitleStyle}>3. Movimentação no Kanban e Retorno de Status</span>
+                <span style={sectionHintStyle}>
+                  Defina quais tarefas os membros podem mover entre colunas. A opção de retornar tarefas concluídas só pode ser ativada caso ao menos uma das duas opções de movimentação esteja ligada.
+                </span>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '8px',
+                    opacity: disableNewMoveOwn ? 0.5 : 1,
+                    cursor: disableNewMoveOwn ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    className="customCheckbox"
+                    checked={membersCanMoveOwnOrAssignedTasks}
+                    disabled={disableNewMoveOwn}
+                    onChange={e => handleToggleMoveOwnOrAssignedNew(e.target.checked)}
+                  />
+                  Membros podem mover apenas tarefas que criaram ou nas quais sejam responsáveis
+                </label>
+
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '8px',
+                    opacity: disableNewMoveAll ? 0.5 : 1,
+                    cursor: disableNewMoveAll ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    className="customCheckbox"
+                    checked={membersCanMoveAllTasks}
+                    disabled={disableNewMoveAll}
+                    onChange={e => handleToggleMoveAllNew(e.target.checked)}
+                  />
+                  Membros podem mover todas as tarefas
+                </label>
+
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    opacity: disableNewReturn ? 0.5 : 1,
+                    cursor: disableNewReturn ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    className="customCheckbox"
+                    checked={membersCanReturnTasks}
+                    disabled={disableNewReturn}
+                    onChange={e => handleToggleReturnTasksNew(e.target.checked)}
+                  />
+                  Membros podem retornar status de tarefas concluídas
+                </label>
+              </div>
+
+              {/* 4. Exclusão de Tarefas */}
+              <div style={sectionBoxStyle}>
+                <span style={sectionTitleStyle}>4. Exclusão de Tarefas</span>
+                <span style={sectionHintStyle}>
+                  Para permitir que membros excluam suas próprias tarefas, a opção de criar tarefas deve estar ligada. Excluir apenas as próprias tarefas e excluir todas são mutuamente exclusivas.
+                </span>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '8px',
+                    opacity: disableNewDeleteOwn ? 0.5 : 1,
+                    cursor: disableNewDeleteOwn ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    className="customCheckbox"
+                    checked={membersCanDeleteOwnTasks}
+                    disabled={disableNewDeleteOwn}
+                    onChange={e => handleToggleDeleteOwnNew(e.target.checked)}
+                  />
+                  Membros podem excluir apenas suas próprias tarefas
+                </label>
+                
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    opacity: disableNewDeleteAll ? 0.5 : 1,
+                    cursor: disableNewDeleteAll ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    className="customCheckbox"
+                    checked={membersCanDeleteTasks}
+                    disabled={disableNewDeleteAll}
+                    onChange={e => handleToggleDeleteAllNew(e.target.checked)}
+                  />
+                  Membros podem excluir todas as tarefas
+                </label>
+              </div>
             </div>
 
             <div className={styles.inputGroup} style={{marginBottom: '15px'}}>
@@ -404,13 +674,13 @@ export default function Organizations() {
 
       {isEditingOrg && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
-          <div style={{ backgroundColor: 'var(--bg-card)', padding: '30px', borderRadius: '12px', width: '90%', maxWidth: '480px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '20px' }}>
+          <div style={{ backgroundColor: 'var(--bg-card)', padding: '28px', borderRadius: '12px', width: '92%', maxWidth: '580px', maxHeight: '90vh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
               <h3 style={{ margin: 0, color: 'var(--text-primary)' }}>Configurar Organização</h3>
               <FaTimes onClick={() => setIsEditingOrg(false)} style={{ cursor: 'pointer', color: 'var(--text-secondary)' }} />
             </div>
 
-            <div style={{ marginBottom: '20px' }}>
+            <div style={{ marginBottom: '16px' }}>
               <label style={{ display: 'block', marginBottom: '5px', color: 'var(--text-secondary)' }}>Nome da Organização</label>
               <input 
                 type="text" 
@@ -420,70 +690,205 @@ export default function Organizations() {
               />
             </div>
 
-            <div style={{marginBottom: '20px'}}>
-              <strong style={{display: 'block', marginBottom: '10px', color: 'var(--text-primary)'}}>Permissões do Cargo Membro:</strong>
-              
-              <label style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--text-secondary)', cursor: 'pointer'}}>
-                <input
-                  type="checkbox"
-                  className="customCheckbox"
-                  checked={editMembersCanCreateTasks}
-                  onChange={e => handleToggleCreateTasksEdit(e.target.checked)}
-                />
-                Membros podem criar tarefas
-              </label>
+            <div style={{marginBottom: '18px'}}>
+              <strong style={{display: 'block', marginBottom: '4px', color: 'var(--text-primary)'}}>
+                Governança de Permissões (Aplicável ao Cargo Membro)
+              </strong>
+              <span style={{display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: 1.4}}>
+                Estas configurações controlam o que usuários com cargo <strong>Membro</strong> podem fazer. Cargos acima de Membro (Gerente, Sub-Dono e Dono) possuem acesso completo independentemente destas opções.
+              </span>
 
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  marginBottom: '8px',
-                  color: 'var(--text-secondary)',
-                  opacity: disableEditDeleteOwn ? 0.45 : 1,
-                  cursor: disableEditDeleteOwn ? 'not-allowed' : 'pointer'
-                }}
-              >
-                <input
-                  type="checkbox"
-                  className="customCheckbox"
-                  checked={editMembersCanDeleteOwnTasks}
-                  disabled={disableEditDeleteOwn}
-                  onChange={e => handleToggleDeleteOwnEdit(e.target.checked)}
-                />
-                Membros podem excluir apenas suas próprias tarefas
-              </label>
-              
-              <label
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  marginBottom: '8px',
-                  color: 'var(--text-secondary)',
-                  opacity: disableEditDeleteAll ? 0.45 : 1,
-                  cursor: disableEditDeleteAll ? 'not-allowed' : 'pointer'
-                }}
-              >
-                <input
-                  type="checkbox"
-                  className="customCheckbox"
-                  checked={editMembersCanDeleteTasks}
-                  disabled={disableEditDeleteAll}
-                  onChange={e => handleToggleDeleteAllEdit(e.target.checked)}
-                />
-                Membros podem excluir todas as tarefas
-              </label>
+              {/* 1. Criação e Prazos */}
+              <div style={sectionBoxStyle}>
+                <span style={sectionTitleStyle}>1. Criação e Prazos de Entrega</span>
+                <span style={sectionHintStyle}>
+                  Defina se os membros podem cadastrar novas tarefas na organização e se podem definir ou alterar datas limite.
+                </span>
+                <label style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--text-secondary)', cursor: 'pointer'}}>
+                  <input
+                    type="checkbox"
+                    className="customCheckbox"
+                    checked={editMembersCanCreateTasks}
+                    onChange={e => handleToggleCreateTasksEdit(e.target.checked)}
+                  />
+                  Membros podem criar tarefas
+                </label>
 
-              <label style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', color: 'var(--text-secondary)', cursor: 'pointer'}}>
-                <input type="checkbox" className="customCheckbox" checked={editMembersCanChangeDeadlines} onChange={e => setEditMembersCanChangeDeadlines(e.target.checked)} />
-                Membros podem alterar prazos
-              </label>
+                <label style={{display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-secondary)', cursor: 'pointer'}}>
+                  <input
+                    type="checkbox"
+                    className="customCheckbox"
+                    checked={editMembersCanChangeDeadlines}
+                    onChange={e => setEditMembersCanChangeDeadlines(e.target.checked)}
+                  />
+                  Membros podem alterar prazos de entrega
+                </label>
+              </div>
 
-              <label style={{display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', color: 'var(--text-secondary)', cursor: 'pointer'}}>
-                <input type="checkbox" className="customCheckbox" checked={editMembersCanReturnTasks} onChange={e => setEditMembersCanReturnTasks(e.target.checked)} />
-                Membros podem retornar status de tarefas concluídas
-              </label>
+              {/* 2. Edição de Tarefas */}
+              <div style={sectionBoxStyle}>
+                <span style={sectionTitleStyle}>2. Edição de Tarefas (Aba Editar Tarefa)</span>
+                <span style={sectionHintStyle}>
+                  Escolha se os membros podem alterar apenas tarefas que criaram/nas quais estão como responsáveis ou qualquer tarefa da organização. Ativar uma opção bloqueia automaticamente a outra.
+                </span>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '8px',
+                    color: 'var(--text-secondary)',
+                    opacity: disableEditEditOwn ? 0.45 : 1,
+                    cursor: disableEditEditOwn ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    className="customCheckbox"
+                    checked={editMembersCanEditOwnOrAssignedTasks}
+                    disabled={disableEditEditOwn}
+                    onChange={e => handleToggleEditOwnOrAssignedEdit(e.target.checked)}
+                  />
+                  Membros podem alterar apenas tarefas que criaram ou nas quais sejam responsáveis
+                </label>
+
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    color: 'var(--text-secondary)',
+                    opacity: disableEditEditAll ? 0.45 : 1,
+                    cursor: disableEditEditAll ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    className="customCheckbox"
+                    checked={editMembersCanEditAllTasks}
+                    disabled={disableEditEditAll}
+                    onChange={e => handleToggleEditAllEdit(e.target.checked)}
+                  />
+                  Membros podem alterar todas as tarefas
+                </label>
+              </div>
+
+              {/* 3. Movimentação e Retorno */}
+              <div style={sectionBoxStyle}>
+                <span style={sectionTitleStyle}>3. Movimentação no Kanban e Retorno de Status</span>
+                <span style={sectionHintStyle}>
+                  Defina quais tarefas os membros podem mover entre colunas. A opção de retornar tarefas concluídas só pode ser ativada caso ao menos uma das duas opções de movimentação esteja ligada.
+                </span>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '8px',
+                    color: 'var(--text-secondary)',
+                    opacity: disableEditMoveOwn ? 0.45 : 1,
+                    cursor: disableEditMoveOwn ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    className="customCheckbox"
+                    checked={editMembersCanMoveOwnOrAssignedTasks}
+                    disabled={disableEditMoveOwn}
+                    onChange={e => handleToggleMoveOwnOrAssignedEdit(e.target.checked)}
+                  />
+                  Membros podem mover apenas tarefas que criaram ou nas quais sejam responsáveis
+                </label>
+
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '8px',
+                    color: 'var(--text-secondary)',
+                    opacity: disableEditMoveAll ? 0.45 : 1,
+                    cursor: disableEditMoveAll ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    className="customCheckbox"
+                    checked={editMembersCanMoveAllTasks}
+                    disabled={disableEditMoveAll}
+                    onChange={e => handleToggleMoveAllEdit(e.target.checked)}
+                  />
+                  Membros podem mover todas as tarefas
+                </label>
+
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    color: 'var(--text-secondary)',
+                    opacity: disableEditReturn ? 0.45 : 1,
+                    cursor: disableEditReturn ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    className="customCheckbox"
+                    checked={editMembersCanReturnTasks}
+                    disabled={disableEditReturn}
+                    onChange={e => handleToggleReturnTasksEdit(e.target.checked)}
+                  />
+                  Membros podem retornar status de tarefas concluídas
+                </label>
+              </div>
+
+              {/* 4. Exclusão de Tarefas */}
+              <div style={sectionBoxStyle}>
+                <span style={sectionTitleStyle}>4. Exclusão de Tarefas</span>
+                <span style={sectionHintStyle}>
+                  Para permitir que membros excluam suas próprias tarefas, a opção de criar tarefas deve estar ligada. Excluir apenas as próprias tarefas e excluir todas são mutuamente exclusivas.
+                </span>
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    marginBottom: '8px',
+                    color: 'var(--text-secondary)',
+                    opacity: disableEditDeleteOwn ? 0.45 : 1,
+                    cursor: disableEditDeleteOwn ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    className="customCheckbox"
+                    checked={editMembersCanDeleteOwnTasks}
+                    disabled={disableEditDeleteOwn}
+                    onChange={e => handleToggleDeleteOwnEdit(e.target.checked)}
+                  />
+                  Membros podem excluir apenas suas próprias tarefas
+                </label>
+                
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    color: 'var(--text-secondary)',
+                    opacity: disableEditDeleteAll ? 0.45 : 1,
+                    cursor: disableEditDeleteAll ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    className="customCheckbox"
+                    checked={editMembersCanDeleteTasks}
+                    disabled={disableEditDeleteAll}
+                    onChange={e => handleToggleDeleteAllEdit(e.target.checked)}
+                  />
+                  Membros podem excluir todas as tarefas
+                </label>
+              </div>
             </div>
 
             <div style={{ marginBottom: '25px' }}>

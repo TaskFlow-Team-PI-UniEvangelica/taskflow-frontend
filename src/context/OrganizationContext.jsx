@@ -13,6 +13,10 @@ function isSameOrg(a, b) {
     Boolean(a.membersCanCreateTasks) === Boolean(b.membersCanCreateTasks) &&
     Boolean(a.membersCanDeleteTasks) === Boolean(b.membersCanDeleteTasks) &&
     Boolean(a.membersCanDeleteOwnTasks) === Boolean(b.membersCanDeleteOwnTasks) &&
+    Boolean(a.membersCanEditAllTasks) === Boolean(b.membersCanEditAllTasks) &&
+    Boolean(a.membersCanEditOwnOrAssignedTasks) === Boolean(b.membersCanEditOwnOrAssignedTasks) &&
+    Boolean(a.membersCanMoveAllTasks) === Boolean(b.membersCanMoveAllTasks) &&
+    Boolean(a.membersCanMoveOwnOrAssignedTasks) === Boolean(b.membersCanMoveOwnOrAssignedTasks) &&
     Boolean(a.membersCanChangeDeadlines) === Boolean(b.membersCanChangeDeadlines) &&
     Boolean(a.membersCanReturnTasks) === Boolean(b.membersCanReturnTasks) &&
     (a.deletedTasksRetentionDays ?? null) === (b.deletedTasksRetentionDays ?? null)
