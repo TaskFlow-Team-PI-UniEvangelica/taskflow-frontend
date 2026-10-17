@@ -11,7 +11,7 @@ run-dev:
 # desliga e remove os containers de qualquer ambiente
 down:
 	docker compose down
-	docker compose -f docker-compose-dev.yml down
+	docker compose -f docker-compose-dev.yml down --remove-orphans
 
 # desliga, remove conteiners e imagens de prod
 clean:
