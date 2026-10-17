@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useAuth } from 'react-oidc-context';
 import {
   FaTrello, FaBuilding, FaUsers, FaKey, FaBell, FaChartPie,
@@ -54,6 +54,14 @@ export default function LandingPage() {
     if (flag) sessionStorage.removeItem(LOGOUT_FLAG_KEY);
     return flag;
   });
+
+  useEffect(() => {
+    if (!showLogoutNotice) return undefined;
+    const timer = setTimeout(() => {
+      setShowLogoutNotice(false);
+    }, 10000);
+    return () => clearTimeout(timer);
+  }, [showLogoutNotice]);
 
   const handleLogin = () => auth.signinRedirect();
   const handleSignup = () => signupRedirect();
