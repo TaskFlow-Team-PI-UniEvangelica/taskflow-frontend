@@ -8,7 +8,7 @@ import { useTheme } from '../../context/ThemeContext';
 import { OrganizationContext } from '../../context/OrganizationContext';
 import PasswordInput from '../UI/PasswordInput';
 import AvatarManager from './AvatarManager';
-import { LOGOUT_FLAG_KEY } from '../../auth/keycloakConfig';
+import { LOGOUT_FLAG_KEY, clearOidcStorage } from '../../auth/keycloakConfig';
 
 export default function DashboardLayout() {
   const auth = useAuth();
@@ -211,12 +211,22 @@ export default function DashboardLayout() {
     }
   };
 
-  const handleLogoutConfirm = () => {
+  const handleLogoutConfirm = async () => {
     // sinaliza para a landing page exibir o aviso de "você saiu da sua conta"
     sessionStorage.setItem(LOGOUT_FLAG_KEY, '1');
-    auth.signoutRedirect();
-    
     setShowLogoutModal(false);
+
+    const idTokenHint = auth?.user?.id_token;
+    try {
+      await auth.removeUser();
+      clearOidcStorage();
+      await auth.signoutRedirect(
+        idTokenHint ? { id_token_hint: idTokenHint } : undefined
+      );
+    } catch (_err) {
+      clearOidcStorage();
+      window.location.replace('/');
+    }
   };
 
   const isActive = (path) => location.pathname === path;

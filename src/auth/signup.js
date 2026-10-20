@@ -1,5 +1,5 @@
 import { UserManager } from 'oidc-client-ts';
-import { oidcSettings } from './keycloakConfig';
+import { oidcSettings, hasActiveStoredToken, REGISTER_FLOW_KEY } from './keycloakConfig';
 
 let registrationManager = null;
 
@@ -13,6 +13,15 @@ let registrationManager = null;
  * pelo react-oidc-context ao voltar para a aplicação.
  */
 export const signupRedirect = () => {
+  // Caso o usuário já esteja com token ativo, garante que sempre vá para o dashboard
+  if (hasActiveStoredToken()) {
+    window.location.replace('/dashboard');
+    return Promise.resolve();
+  }
+
+  // Persiste no localStorage (mesma origem :5173) que o fluxo iniciado é de criação de conta
+  window.localStorage.setItem(REGISTER_FLOW_KEY, '1');
+
   if (!registrationManager) {
     registrationManager = new UserManager({
       ...oidcSettings,
@@ -21,5 +30,9 @@ export const signupRedirect = () => {
       },
     });
   }
-  return registrationManager.signinRedirect();
+  return registrationManager.signinRedirect({
+    redirectMethod: 'replace',
+    url_state: 'register',
+    state: { flow: 'register' },
+  });
 };

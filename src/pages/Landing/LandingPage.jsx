@@ -12,7 +12,7 @@ import HeroKanbanMockup from './components/HeroKanbanMockup';
 import FeatureCard from './components/FeatureCard';
 import useReveal from './components/useReveal';
 import { signupRedirect } from '../../auth/signup';
-import { LOGOUT_FLAG_KEY } from '../../auth/keycloakConfig';
+import { LOGOUT_FLAG_KEY, REGISTER_FLOW_KEY, hasActiveStoredToken } from '../../auth/keycloakConfig';
 
 const HIGHLIGHTS = [
   { icon: FaTrello, label: 'Kanban visual' },
@@ -63,8 +63,22 @@ export default function LandingPage() {
     return () => clearTimeout(timer);
   }, [showLogoutNotice]);
 
-  const handleLogin = () => auth.signinRedirect();
-  const handleSignup = () => signupRedirect();
+  const handleLogin = () => {
+    if ((auth.isAuthenticated && !auth.user?.expired) || hasActiveStoredToken()) {
+      window.location.replace('/dashboard');
+      return;
+    }
+    window.localStorage.removeItem(REGISTER_FLOW_KEY);
+    auth.signinRedirect({ redirectMethod: 'replace' });
+  };
+
+  const handleSignup = () => {
+    if ((auth.isAuthenticated && !auth.user?.expired) || hasActiveStoredToken()) {
+      window.location.replace('/dashboard');
+      return;
+    }
+    signupRedirect();
+  };
 
   return (
     <div className={styles.page} ref={pageRef}>
