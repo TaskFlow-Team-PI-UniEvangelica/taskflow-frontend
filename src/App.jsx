@@ -46,6 +46,7 @@ function App() {
   const searchParams = new URLSearchParams(window.location.search);
   const startSignupParam = searchParams.get('start_signup') === '1';
   const startLoginParam = searchParams.get('start_login') === '1';
+  const isVerifiedParam = searchParams.get('verified') === '1';
   const hasOAuthCode = searchParams.has('code') && searchParams.has('state');
 
   const isActiveToken = Boolean(
@@ -59,7 +60,7 @@ function App() {
     sessionStorage.getItem(POST_REGISTER_LOGIN_KEY) === '1' ||
     (hasOAuthCode && window.localStorage.getItem(REGISTER_FLOW_KEY) === '1');
 
-  // 1. Fluxo pós-cadastro e atalhos vindos das telas do Keycloak (Se inscreva / Cancelar)
+  // 1. Fluxo pós-cadastro e atalhos vindos das telas do Keycloak (Se inscreva / Cancelar / Confirmação de e-mail)
   useEffect(() => {
     if (auth.isLoading) return;
 
@@ -72,9 +73,16 @@ function App() {
     if (startLoginParam) {
       window.history.replaceState({}, document.title, '/');
       window.localStorage.removeItem(REGISTER_FLOW_KEY);
-      auth.signinRedirect({ redirectMethod: 'replace' }).catch(() => {
-        window.location.replace('/');
-      });
+      clearOidcStorage();
+      auth
+        .signinRedirect({
+          redirectMethod: 'replace',
+          prompt: 'login',
+          ...(isVerifiedParam ? { extraQueryParams: { verified: '1' } } : {}),
+        })
+        .catch(() => {
+          window.location.replace('/');
+        });
       return;
     }
 

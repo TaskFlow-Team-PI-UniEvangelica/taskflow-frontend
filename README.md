@@ -27,24 +27,29 @@ taskflow-frontend/
 ├── public/                  # Arquivos estáticos e globais (imagens de fundo, ícones padrão).
 ├── src/                     # Código-fonte principal da aplicação React.
 │   ├── assets/              # Recursos estáticos importados diretamente no código (ex: react.svg).
+│   ├── auth/                # Configurações do cliente OIDC / Keycloak (PKCE, limpeza de storage e flags).
 │   ├── components/          # Componentes visuais e de layout reutilizáveis.
-│   │   ├── DashboardLayout/ # Estrutura visual base do sistema logado.
+│   │   ├── DashboardLayout/ # Estrutura visual base do sistema logado com sidebar e navbar.
+│   │   ├── RegisterForm/    # Formulário e regras visuais de cadastro.
+│   │   ├── TaskHistory/     # Drawer e linha do tempo de histórico de tarefas.
 │   │   └── UI/              # Componentes primitivos genéricos e isolados (Button, Input, PasswordInput).
-│   ├── context/             # Contextos globais da aplicação (ex: ThemeContext para temas).
+│   ├── context/             # Contextos globais da aplicação (ThemeContext, OrganizationContext).
 │   ├── pages/               # Telas roteáveis completas da aplicação.
-│   │   ├── Dashboard/       # Visão geral do usuário logado.
-│   │   ├── Kanban/          # Quadro de gerenciamento interativo de tarefas.
-│   │   ├── Tasks/           # Listagem e edição de tarefas.
-│   │   └── Teams/           # Criação e gestão de equipes e tarefas conjuntas.
-│   ├── _deprecated/         # Componentes de autenticação antigos e inativos.
-│   ├── _deprecated/         # Componentes de autenticação antigos e inativos.
-│   ├── App.jsx              # Ponto central de definição do roteamento (react-router-dom).
-│   └── main.jsx             # Ponto de entrada principal que renderiza o React no DOM.
+│   │   ├── Dashboard/       # Visão geral do usuário logado e métricas da organização.
+│   │   ├── Kanban/          # Quadro interativo de gerenciamento de tarefas por colunas.
+│   │   ├── Landing/         # Página inicial institucional pública com login/registro.
+│   │   ├── Organizations/   # Gestão de organizações, governança de tarefas e convites.
+│   │   ├── Tasks/           # Listagem, criação e edição de tarefas.
+│   │   └── Teams/           # Criação e gestão de equipes e membros.
+│   ├── App.jsx              # Ponto central de roteamento protegido e tratamento de callbacks OIDC.
+│   ├── index.css            # Estilos globais e variáveis de tema CSS.
+│   └── main.jsx             # Ponto de entrada com provedor AuthProvider (Keycloak OIDC).
+├── .env.example             # Modelo de variáveis de ambiente para desenvolvimento e produção.
 ├── .gitignore               # Regras de exclusão de arquivos para o repositório.
 ├── docker-compose.yml       # Orquestração do ambiente de Produção (Nginx).
-├── docker-compose.dev.yml   # Orquestração do ambiente de Desenvolvimento (Vite).
+├── docker-compose-dev.yml   # Orquestração do ambiente de Desenvolvimento (Vite com Hot Reload).
 ├── Dockerfile               # Imagem de Produção (Build Node + Deploy Nginx).
-├── Dockerfile.dev           # Imagem de Desenvolvimento (Node + Vite).
+├── Dockerfile-dev           # Imagem de Desenvolvimento (Node + Vite).
 ├── Makefile                 # Atalhos para rodar os comandos do Docker.
 ├── package.json             # Gerenciamento de dependências e scripts de execução.
 └── vite.config.js           # Configurações do empacotador Vite.
@@ -52,8 +57,12 @@ taskflow-frontend/
 
 
 ## Segurança e Autenticação
-O TaskFlow Frontend utiliza o padrão **OIDC (OpenID Connect)** integrado ao Keycloak. 
-Por motivos de segurança (prevenção contra ataques XSS - *Cross-Site Scripting*), a aplicação **não armazena Tokens JWT no LocalStorage ou SessionStorage**. O estado da sessão é gerenciado de forma puramente em memória através da biblioteca `react-oidc-context`.
+O TaskFlow Frontend utiliza o padrão **OIDC (OpenID Connect)** integrado ao Keycloak, adotando as seguintes diretrizes de segurança e arquitetura:
+- **Fluxo Authorization Code com PKCE:** Implementado via `react-oidc-context` e `oidc-client-ts`, garantindo troca criptográfica de tokens no navegador sem exposição de credenciais ou *client secrets*.
+- **Persistência de Sessão Segura:** Utiliza `WebStorageStateStore` com `localStorage` para manter a sessão do usuário ativa durante atualizações de página e navegações, com expiração automática baseada no tempo de vida dos tokens emitidos pelo Keycloak.
+- **Fluxo de Cadastro com Confirmação Manual de Login:** Quando um novo usuário se cadastra, o sistema impede deliberadamente o login automático (`REGISTER_FLOW_KEY`), exigindo confirmação de e-mail e autenticação explícita por credenciais (`prompt: 'login'`), garantindo conformidade e proteção contra acessos indevidos.
+- **Tratamento de Confirmação de E-mail (`Verify Email`):** Ao clicar no link de confirmação recebido por e-mail (Mailpit em desenvolvimento), o Keycloak exibe tela customizada com confirmação visual e botão dinâmico de retorno ao frontend. A aplicação captura o parâmetro de sucesso (`verified=1`) e redireciona para a tela de login do Keycloak com o campo de e-mail pré-preenchido e mensagem de boas-vindas.
+- **Rotas Protegidas:** O componente raiz valida o estado de autenticação antes de renderizar páginas privadas (`/dashboard`, `/kanban`, `/tasks`, `/teams`, `/organizations`). Usuários não autenticados são mantidos na Landing Page pública.
 
 ## Requisitos para rodar
 - Docker e Docker Compose V2
@@ -92,7 +101,7 @@ VITE_REDIRECT_URI=https://taskflow.com.br
 ## Passos para rodar via Linux (Docker + Makefile)
 
 1. **Clone o repositório:**
-Clone o repositório do backend seja usando terminal ou baixando o arquivo ZIP.
+Clone o repositório do frontend seja usando terminal ou baixando o arquivo ZIP.
 
 2. **Acesse a pasta do projeto pelo terminal:**
    ```bash
@@ -164,7 +173,7 @@ Escolha o ambiente que deseja subir a aplicação.
 ## Passos para rodar via Windows (Docker)
 
 1. **Clone o repositório:**
-Clone o repositório do backend seja usando terminal ou baixando o arquivo ZIP.
+Clone o repositório do frontend seja usando terminal ou baixando o arquivo ZIP.
 
 2. **Acesse a pasta do projeto pelo terminal:**
    ```bash
