@@ -89,11 +89,41 @@
   border-color: var(--primary-blue);
 }
 
+.cardHeaderRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
 .taskTitle {
   font-weight: bold;
   color: var(--text-primary);
-  margin: 0 0 10px 0;
+  margin: 0;
   font-size: 1rem;
+  flex: 1;
+}
+
+.historyBtn {
+  background: transparent;
+  border: 1px solid var(--border-color);
+  color: var(--text-secondary);
+  border-radius: 6px;
+  padding: 4px 7px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.historyBtn:hover {
+  color: var(--primary-blue);
+  border-color: var(--primary-blue);
+  background-color: var(--bg-card);
 }
 
 .taskMeta {

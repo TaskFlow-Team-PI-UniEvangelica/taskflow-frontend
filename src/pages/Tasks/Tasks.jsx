@@ -1,8 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { useAuth } from 'react-oidc-context';
+import React, { useState, useEffect, useContext } from 'react';
+import { OrganizationContext } from '../../context/OrganizationContext';
 import styles from './Tasks.module.css';
 import { FaCheckCircle, FaCalendarAlt, FaUsers } from 'react-icons/fa'; 
 
 export default function Tasks() {
+  const auth = useAuth();
+  const { currentOrg } = useContext(OrganizationContext);
   const [teamMembers, setTeamMembers] = useState([]); 
   const [showSuccess, setShowSuccess] = useState(false);
   const [erro, setErro] = useState(null); 
@@ -12,19 +16,29 @@ export default function Tasks() {
     titulo: '', descricao: '', prioridade: '', prazo: '', idsResponsaveis: [] 
   });
 
+  const userRole = currentOrg?.myRole || currentOrg?.userRole;
+  const isAboveMember = ['OWNER', 'SUB_OWNER', 'MANAGER'].includes(userRole);
+  const canCreateTasks = Boolean(
+    currentOrg && (isAboveMember || currentOrg.membersCanCreateTasks !== false)
+  );
+  const canChangeDeadline = Boolean(
+    currentOrg && (isAboveMember || currentOrg.membersCanChangeDeadlines === true)
+  );
+
+  // Recarrega membros apenas quando o ID da organização ativa muda (evita flicker no hot reload)
   useEffect(() => {
-    fetchUsers(); 
-  }, []);
+    if (currentOrg?.id) fetchUsers(); 
+  }, [currentOrg?.id]);
 
   const fetchUsers = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/user`, {
+      const token = auth?.user?.access_token;
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/organization/${currentOrg.id}/members`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) setTeamMembers(await response.json());
-    } catch (error) {
-      console.error("Erro ao buscar usuários da equipe", error);
+    } catch (_error) {
+      console.error("Erro", _error);
     }
   };
 
@@ -41,17 +55,19 @@ export default function Tasks() {
   const handleCreate = async (e) => {
     e.preventDefault();
     setErro(null);
+    if (!currentOrg) return setErro("Selecione uma organização primeiro.");
+    if (!canCreateTasks) return setErro("A criação de tarefas por membros está desabilitada nesta organização.");
     setIsLoading(true);
 
     try {
-      const token = localStorage.getItem('token');
+      const token = auth?.user?.access_token;
       const response = await fetch(`${import.meta.env.VITE_API_URL}/task`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}` 
         },
-        body: JSON.stringify(taskData) 
+        body: JSON.stringify({ ...taskData, organizationId: currentOrg.id }) 
       });
 
       if (response.ok) {
@@ -59,9 +75,10 @@ export default function Tasks() {
         setTaskData({ titulo: '', descricao: '', prioridade: '', prazo: '', idsResponsaveis: [] });
         setTimeout(() => setShowSuccess(false), 2500);
       } else {
-        setErro('Erro ao registrar a tarefa no sistema.');
+        const errData = await response.json().catch(() => null);
+        setErro(errData?.message || 'Erro ao registrar a tarefa no sistema.');
       }
-    } catch (error) {
+    } catch (_error) {
       setErro('Falha na comunicação com o servidor.');
     } finally {
       setIsLoading(false);
@@ -93,6 +110,12 @@ export default function Tasks() {
           <h1 className={styles.title}>Nova Tarefa</h1>
           <p className={styles.subtitle}>Configure os parâmetros técnicos da atividade.</p>
         </header>
+
+        {currentOrg && !canCreateTasks && (
+          <div style={{ backgroundColor: 'rgba(245, 158, 11, 0.15)', color: '#f59e0b', padding: '12px', borderRadius: '8px', marginBottom: '20px', fontWeight: 500 }}>
+            O Dono da organização desabilitou a criação de novas tarefas para o cargo de Membro.
+          </div>
+        )}
         
         <form className={styles.form} onSubmit={handleCreate}>
           <div className={styles.layoutGrid}>
@@ -101,6 +124,7 @@ export default function Tasks() {
                 <label>TÍTULO DO ITEM</label>
                 <input 
                   type="text" placeholder="Defina o objetivo principal..." required 
+                  disabled={!canCreateTasks}
                   value={taskData.titulo} 
                   onChange={(e) => setTaskData({...taskData, titulo: e.target.value})}
                 />
@@ -110,6 +134,7 @@ export default function Tasks() {
                 <label>DOCUMENTAÇÃO / DESCRIÇÃO</label>
                 <textarea 
                   placeholder="Detalhes técnicos e requisitos..." rows="4"
+                  disabled={!canCreateTasks}
                   value={taskData.descricao}
                   onChange={(e) => setTaskData({...taskData, descricao: e.target.value})}
                 ></textarea>
@@ -117,19 +142,19 @@ export default function Tasks() {
 
               <div className={styles.field}>
                 <label><FaUsers /> ATRIBUIR RESPONSÁVEIS</label>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '5px', padding: '10px', background: 'var(--bg-app)', borderRadius: '8px', border: '1px solid #ccc' }}>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '5px', padding: '10px', background: 'var(--bg-app)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                   {teamMembers.length === 0 ? (
                     <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>Nenhum membro encontrado.</span>
                   ) : (
                     teamMembers.map(user => (
-                      <label key={user.id} style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', background: 'var(--bg-card)', padding: '5px 10px', borderRadius: '15px', border: '1px solid var(--primary-blue)', fontSize: '0.9rem' }}>
+                      <label key={user.id} style={{ display: 'flex', alignItems: 'center', gap: '5px', cursor: 'pointer', background: 'var(--bg-card)', padding: '5px 10px', borderRadius: '15px', border: '1px solid var(--border-color)', fontSize: '0.9rem' }}>
                         <input 
-                          type="checkbox" 
+                          type="checkbox" className="customCheckbox" 
+                          disabled={!canCreateTasks}
                           checked={taskData.idsResponsaveis.includes(user.id)}
                           onChange={() => handleCheckboxChange(user.id)}
                         />
-                        {user.nome.split(' ')[0]} 
-                      </label>
+                        {user.nome.trim().split(/\s+/).length > 1 ? `${user.nome.trim().split(/\s+/)[0]} ${user.nome.trim().split(/\s+/)[1][0]}.` : user.nome.trim().split(/\s+/)[0]} </label>
                     ))
                   )}
                 </div>
@@ -139,7 +164,7 @@ export default function Tasks() {
             <div className={styles.sidebarSection}>
               <div className={styles.field}>
                 <label>PRIORIDADE</label>
-                <select value={taskData.prioridade} required onChange={(e) => setTaskData({...taskData, prioridade: e.target.value})}>
+                <select value={taskData.prioridade} required disabled={!canCreateTasks} onChange={(e) => setTaskData({...taskData, prioridade: e.target.value})}>
                   <option value="" disabled>Nível de urgência</option>
                   <option value="alta">ALTA</option>
                   <option value="media">MÉDIA</option>
@@ -150,7 +175,8 @@ export default function Tasks() {
               <div className={styles.field}>
                 <label><FaCalendarAlt /> PRAZO DE ENTREGA</label>
                 <input 
-                  type="date" required 
+                  type="date"
+                  disabled={!canCreateTasks || !canChangeDeadline}
                   value={taskData.prazo}
                   onChange={(e) => setTaskData({...taskData, prazo: e.target.value})} 
                 />
@@ -159,7 +185,7 @@ export default function Tasks() {
           </div>
 
           <footer className={styles.footer} style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <button type="submit" className={styles.primaryBtn} disabled={isLoading}>
+            <button type="submit" className={styles.primaryBtn} disabled={isLoading || !canCreateTasks}>
               {isLoading ? 'Salvando...' : 'Salvar Tarefa'}
             </button>
           </footer>

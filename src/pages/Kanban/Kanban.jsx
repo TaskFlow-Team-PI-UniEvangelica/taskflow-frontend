@@ -1,62 +1,115 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
+import { useAuth } from 'react-oidc-context';
+import { FaHistory, FaTrashAlt } from 'react-icons/fa';
+import { OrganizationContext } from '../../context/OrganizationContext';
+import TaskTimeline from '../../components/TaskHistory/TaskTimeline';
+import DeletedTasksModal from '../../components/TaskHistory/DeletedTasksModal';
 import styles from './Kanban.module.css';
 
 export default function Kanban() {
+  const auth = useAuth();
+  const { currentOrg, currentUser } = useContext(OrganizationContext);
   const [tasks, setTasks] = useState([]);
+  const [historyTask, setHistoryTask] = useState(null);
+  const [showDeletedModal, setShowDeletedModal] = useState(false);
 
-  useEffect(() => {
-    fetchTasks();
-  }, []);
+  const userRole = currentOrg?.myRole || currentOrg?.userRole;
+  const isAboveMember = ['OWNER', 'SUB_OWNER', 'MANAGER'].includes(userRole);
+
+  const canMoveTaskCard = (task) => {
+    if (!task || !currentOrg) return false;
+    if (isAboveMember) return true;
+
+    const isCreator = Boolean(
+      currentUser &&
+      ((task.criadorId != null && Number(task.criadorId) === Number(currentUser.id)) ||
+       (task.nomeCriador && currentUser.nome && task.nomeCriador === currentUser.nome))
+    );
+    const isAssignee = Boolean(
+      currentUser &&
+      ((Array.isArray(task.idsResponsaveis) &&
+        task.idsResponsaveis.some(id => Number(id) === Number(currentUser.id))) ||
+       (Array.isArray(task.nomesResponsaveis) &&
+        currentUser.nome &&
+        task.nomesResponsaveis.includes(currentUser.nome)))
+    );
+
+    const canMove =
+      currentOrg.membersCanMoveAllTasks === true ||
+      (currentOrg.membersCanMoveOwnOrAssignedTasks !== false && (isCreator || isAssignee));
+
+    if (!canMove) return false;
+
+    if (String(task.status).toLowerCase() === 'concluida') {
+      return currentOrg.membersCanReturnTasks === true;
+    }
+
+    return true;
+  };
 
   const fetchTasks = async () => {
+    if (!currentOrg?.id) {
+        setTasks([]);
+        return;
+    }
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/task`, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      const token = auth?.user?.access_token;
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/task?organizationId=${currentOrg.id}`, {
+        headers: { "Authorization": `Bearer ${token}` }
       });
       if (response.ok) setTasks(await response.json());
-    } catch (error) {
+    } catch (_error) {
       console.error("Erro ao buscar tarefas");
     }
   };
 
+  // Observa apenas o ID da organização para evitar recarregar os cards quando configurações mudam em background
+  useEffect(() => {
+    fetchTasks();
+    setHistoryTask(null);
+  }, [currentOrg?.id]);
+
+
   // --- TRATAMENTO DE DATAS ---
   const parseData = (prazo) => {
-    if (!prazo) return new Date(); 
+    if (!prazo) return null; 
     if (Array.isArray(prazo)) return new Date(prazo[0], prazo[1] - 1, prazo[2]); 
     return new Date(prazo + "T00:00:00"); 
   };
 
   const isAtrasada = (prazo, status) => {
     if (String(status).toLowerCase() === 'concluida') return false;
-    return parseData(prazo) < new Date(new Date().setHours(0,0,0,0));
+    const dataPrazo = parseData(prazo);
+    if (!dataPrazo) return false;
+    return dataPrazo < new Date(new Date().setHours(0,0,0,0));
   };
 
   // --- EVENTOS DE DRAG AND DROP NATIVO ---
-  
-  // 1. O que acontece quando pego o card? (Guardo o ID dele)
-  const handleDragStart = (e, taskId) => {
-    e.dataTransfer.setData("taskId", taskId);
+  const handleDragStart = (e, task) => {
+    if (!canMoveTaskCard(task)) {
+      e.preventDefault();
+      return;
+    }
+    e.dataTransfer.setData("taskId", task.id);
   };
 
-  // 2. Permite que a coluna receba o card
   const handleDragOver = (e) => {
-    e.preventDefault(); // Necessário para o onDrop funcionar
+    e.preventDefault();
   };
 
-  // 3. O que acontece quando solto o card na coluna nova?
   const handleDrop = async (e, novoStatus) => {
     const taskId = e.dataTransfer.getData("taskId");
+    if (!taskId) return;
+    const draggedTask = tasks.find(t => t.id.toString() === taskId.toString());
+    if (!draggedTask || !canMoveTaskCard(draggedTask)) return;
     
-    // Atualiza a tela imediatamente (Otimista) para não ter delay visual
     setTasks(prevTasks => prevTasks.map(t => 
       t.id.toString() === taskId ? { ...t, status: novoStatus } : t
     ));
 
-    // Dispara o PATCH pro backend em background
     try {
-      const token = localStorage.getItem('token');
-      await fetch(`${import.meta.env.VITE_API_URL}/task/${taskId}/status`, {
+      const token = auth?.user?.access_token;
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/task/${taskId}/status`, {
         method: 'PATCH',
         headers: { 
           'Content-Type': 'application/json',
@@ -64,22 +117,47 @@ export default function Kanban() {
         },
         body: JSON.stringify({ status: novoStatus })
       });
-    } catch (error) {
+      if (!response.ok) {
+        fetchTasks();
+      }
+    } catch (_error) {
       console.error("Erro ao atualizar status via Drag and Drop");
-      fetchTasks(); // Se der erro, recarrega os dados originais do banco
+      fetchTasks();
     }
   };
 
-  // Separa as tarefas por status
   const pendentes = tasks.filter(t => String(t.status).toLowerCase() === 'pendente');
   const andamento = tasks.filter(t => String(t.status).toLowerCase() === 'em_andamento');
   const concluidas = tasks.filter(t => String(t.status).toLowerCase() === 'concluida');
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>Quadro Kanban</h1>
-        <p style={{ color: 'var(--text-secondary)' }}>Arraste e solte os cards para atualizar o status.</p>
+      <header className={styles.header} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+        <div>
+          <h1 className={styles.title}>Quadro Kanban</h1>
+          <p style={{ color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>Arraste e solte os cards para atualizar o status ou consulte o histórico de auditoria.</p>
+        </div>
+        {isAboveMember && (
+          <button
+            type="button"
+            onClick={() => setShowDeletedModal(true)}
+            style={{
+              backgroundColor: 'rgba(239, 68, 68, 0.1)',
+              color: '#ef4444',
+              border: '1px solid rgba(239, 68, 68, 0.35)',
+              padding: '10px 16px',
+              borderRadius: '8px',
+              fontWeight: 600,
+              cursor: 'pointer',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              fontSize: '0.88rem'
+            }}
+          >
+            <FaTrashAlt /> Histórico de Excluídas
+          </button>
+        )}
       </header>
 
       <div className={styles.board}>
@@ -91,7 +169,14 @@ export default function Kanban() {
           </div>
           <div className={styles.taskList}>
             {pendentes.map(task => (
-              <TaskCard key={task.id} task={task} onDragStart={handleDragStart} isAtrasada={isAtrasada(task.prazo, task.status)} />
+              <TaskCard
+                key={task.id}
+                task={task}
+                canMove={canMoveTaskCard(task)}
+                onDragStart={handleDragStart}
+                onOpenHistory={setHistoryTask}
+                isAtrasada={isAtrasada(task.prazo, task.status)}
+              />
             ))}
           </div>
         </div>
@@ -104,7 +189,14 @@ export default function Kanban() {
           </div>
           <div className={styles.taskList}>
             {andamento.map(task => (
-              <TaskCard key={task.id} task={task} onDragStart={handleDragStart} isAtrasada={isAtrasada(task.prazo, task.status)} />
+              <TaskCard
+                key={task.id}
+                task={task}
+                canMove={canMoveTaskCard(task)}
+                onDragStart={handleDragStart}
+                onOpenHistory={setHistoryTask}
+                isAtrasada={isAtrasada(task.prazo, task.status)}
+              />
             ))}
           </div>
         </div>
@@ -117,28 +209,68 @@ export default function Kanban() {
           </div>
           <div className={styles.taskList}>
             {concluidas.map(task => (
-              <TaskCard key={task.id} task={task} onDragStart={handleDragStart} isAtrasada={false} />
+              <TaskCard
+                key={task.id}
+                task={task}
+                canMove={canMoveTaskCard(task)}
+                onDragStart={handleDragStart}
+                onOpenHistory={setHistoryTask}
+                isAtrasada={false}
+              />
             ))}
           </div>
         </div>
       </div>
+
+      <TaskTimeline
+        isModal
+        isOpen={Boolean(historyTask)}
+        onClose={() => setHistoryTask(null)}
+        taskId={historyTask?.id}
+        taskNumber={historyTask?.taskNumber}
+        taskTitle={historyTask?.titulo}
+        token={auth?.user?.access_token}
+      />
+
+      <DeletedTasksModal
+        isOpen={showDeletedModal}
+        onClose={() => setShowDeletedModal(false)}
+        organization={currentOrg}
+        token={auth?.user?.access_token}
+      />
     </div>
   );
 }
 
-// Sub-componente para deixar o código mais limpo
-function TaskCard({ task, onDragStart, isAtrasada }) {
+function TaskCard({ task, canMove, onDragStart, onOpenHistory, isAtrasada }) {
   const dataFormatada = task.prazo ? new Date(
     Array.isArray(task.prazo) ? new Date(task.prazo[0], task.prazo[1] - 1, task.prazo[2]) : task.prazo + "T00:00:00"
-  ).toLocaleDateString('pt-BR') : 'N/A';
+  ).toLocaleDateString('pt-BR') : 'Sem prazo';
 
   return (
     <div 
       className={styles.taskCard} 
-      draggable // Habilita o drag do HTML5
-      onDragStart={(e) => onDragStart(e, task.id)}
+      draggable={canMove}
+      onDragStart={(e) => onDragStart(e, task)}
+      style={{ cursor: canMove ? 'grab' : 'default' }}
+      title={!canMove ? 'Você não possui permissão para mover esta tarefa segundo as configurações da organização.' : undefined}
     >
-      <p className={styles.taskTitle}>{task.titulo}</p>
+      <div className={styles.cardHeaderRow}>
+        <p className={styles.taskTitle}>
+          {task.taskNumber ? `${task.taskNumber} - ${task.titulo}` : task.titulo}
+        </p>
+        <button
+          type="button"
+          className={styles.historyBtn}
+          title="Ver histórico de alterações"
+          onClick={(e) => {
+            e.stopPropagation();
+            onOpenHistory(task);
+          }}
+        >
+          <FaHistory />
+        </button>
+      </div>
       
       <div className={styles.taskMeta}>
         <span className={`${styles.priorityTag} ${styles[String(task.prioridade).toLowerCase()]}`}>
