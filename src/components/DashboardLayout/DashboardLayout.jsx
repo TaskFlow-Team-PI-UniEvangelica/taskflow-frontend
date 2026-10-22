@@ -1,12 +1,18 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { useAuth } from 'react-oidc-context';
+import React, { useState, useEffect, useContext } from 'react';
+import { useNavigate, Link, useLocation, Outlet } from 'react-router-dom';
 import styles from './DashboardLayout.module.css';
 // --- MUDANÇA: FaTrello adicionado na lista de importações abaixo ---
-import { FaChartPie, FaTasks, FaUsers, FaSignOutAlt, FaTimes, FaMoon, FaSun, FaSave, FaKey, FaCamera, FaIdBadge, FaEnvelope, FaBriefcase, FaEdit, FaTrello } from 'react-icons/fa';
+import { FaUser, FaTrash, FaChartPie, FaTasks, FaUsers, FaSignOutAlt, FaTimes, FaMoon, FaSun, FaSave, FaKey, FaCamera, FaIdBadge, FaEnvelope, FaBriefcase, FaEdit, FaTrello, FaBuilding, FaBell, FaBars } from 'react-icons/fa';
 import { useTheme } from '../../context/ThemeContext';
+import { OrganizationContext } from '../../context/OrganizationContext';
 import PasswordInput from '../UI/PasswordInput';
+import AvatarManager from './AvatarManager';
+import { LOGOUT_FLAG_KEY, clearOidcStorage } from '../../auth/keycloakConfig';
 
-export default function DashboardLayout({ children }) {
+export default function DashboardLayout() {
+  const auth = useAuth();
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   const [isChangingPassword, setIsChangingPassword] = useState(false);
 
@@ -16,9 +22,12 @@ export default function DashboardLayout({ children }) {
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
+  const [showAvatarManager, setShowAvatarManager] = useState(false);
   const [isLoadingPassword, setIsLoadingPassword] = useState(false);
+  const [invites, setInvites] = useState([]);
+  const [showInvitesDropdown, setShowInvitesDropdown] = useState(false);
 
-  const [profileImage, setProfileImage] = useState(localStorage.getItem('user_photo') || null);
+  const [profileImage, setProfileImage] = useState(null);
 
   const { theme, toggleTheme } = useTheme();
   const navigate = useNavigate();
@@ -33,6 +42,59 @@ export default function DashboardLayout({ children }) {
 
   const [toast, setToast] = useState({ show: false, message: '', type: '' });
 
+  
+  const fetchInvites = async () => {
+    const token = auth?.user?.access_token;
+    if (!token) return;
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/user/me/invites`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setInvites(data);
+      }
+    } catch (e) { console.error('Erro ao buscar convites', e); }
+  };
+
+  
+  useEffect(() => {
+    const token = auth?.user?.access_token;
+    if (!token) return;
+
+    const interval = setInterval(() => {
+      fetch(`${import.meta.env.VITE_API_URL}/user/me/invites`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      })
+      .then(res => res.ok ? res.json() : Promise.reject(res))
+      .then(data => setInvites(data))
+      .catch(e => console.error('Erro no polling de convites', e));
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [auth?.user?.access_token]);
+  const { organizations, currentOrg, selectOrganization, refreshOrganizations } = useContext(OrganizationContext);
+
+  const handleInviteAction = async (inviteId, action) => {
+    const token = auth?.user?.access_token;
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/user/me/invites/${inviteId}/${action}`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (res.ok) {
+        showNotification(`Convite ${action === 'accept' ? 'aceito' : 'recusado'} com sucesso!`, 'success');
+        fetchInvites();
+        if (action === 'accept') {
+          await refreshOrganizations();
+        }
+      } else {
+        showNotification('Erro ao processar convite', 'error');
+      }
+    } catch (e) {
+      showNotification('Erro interno', 'error');
+    }
+  };
   const showNotification = (message, type) => {
     setToast({ show: true, message, type });
     setTimeout(() => setToast({ show: false, message: '', type: '' }), 3000);
@@ -40,8 +102,7 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => {
     const buscarDadosDoUsuario = async () => {
-      const token = localStorage.getItem('token');
-      if (!token) return navigate('/');
+      const token = auth?.user?.access_token;
 
       try {
         const response = await fetch(`${import.meta.env.VITE_API_URL}/user/me`, {
@@ -60,80 +121,111 @@ export default function DashboardLayout({ children }) {
             cargo: data.cargo || "Sem cargo",
             id: data.id || "N/A"
           });
+          fetchAndSetAvatar(data.id);
         } else if (response.status === 401 || response.status === 403) {
           handleLogoutConfirm();
         }
-      } catch (error) {
-        console.error("Erro ao buscar dados:", error);
+      } catch (_error) {
+        console.error("Erro", _error);
       }
     };
 
     buscarDadosDoUsuario();
+    fetchInvites();
+    
   }, [navigate]);
 
-  const handlePhotoChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const base64String = reader.result;
-        setProfileImage(base64String);
-        localStorage.setItem('user_photo', base64String);
-        showNotification("Foto de perfil atualizada!", "save");
-      };
-      reader.readAsDataURL(file);
-    }
-  };
 
-  const handleLogoutConfirm = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user_photo');
-    setShowLogoutModal(false);
-    navigate('/');
-  };
-
-  const handlePasswordToggle = () => {
-    setIsChangingPassword(!isChangingPassword);
-    setNewPassword('');
-    setCurrentPassword(''); // Limpa a senha atual ao cancelar também
-  };
-
-  const handlePasswordConfirm = async () => {
-    if (currentPassword.trim() === "" || newPassword.trim() === "") {
-      showNotification("Preencha a senha atual e a nova senha.", "error");
-      return;
-    }
-
-    setIsLoadingPassword(true);
+  
+  const fetchAndSetAvatar = async (userId) => {
+    const token = auth?.user?.access_token;
+    if (!token) return;
     try {
-      const token = localStorage.getItem('token');
-
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/user/me/password`, {
-        method: 'PATCH',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          senhaAtual: currentPassword,
-          novaSenha: newPassword
-        })
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/user/${userId}/avatar`, {
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-
       if (response.ok) {
-        showNotification("Senha atualizada com segurança!", "password");
-        setIsChangingPassword(false);
-        setNewPassword('');
-        setCurrentPassword('');
-      } else if (response.status === 400 || response.status === 403) {
-        showNotification("Senha atual incorreta ou dados inválidos.", "error");
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        setProfileImage(prev => {
+          if (prev) URL.revokeObjectURL(prev);
+          return objectUrl;
+        });
       } else {
-        showNotification("Erro ao atualizar a senha.", "error");
+        setProfileImage(prev => {
+          if (prev) URL.revokeObjectURL(prev);
+          return null;
+        });
+        setShowAvatarManager(false);
       }
-    } catch (error) {
-      showNotification("Falha na comunicação com o servidor.", "error");
-    } finally {
-      setIsLoadingPassword(false);
+    } catch (e) {
+      setProfileImage(prev => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      setShowAvatarManager(false);
+    }
+  };
+
+  const handleUploadBlob = async (blob) => {
+    const formData = new FormData();
+    formData.append('file', blob, 'avatar.jpg');
+    const token = auth?.user?.access_token;
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/user/me/avatar`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      if (response.ok) {
+        showNotification("Foto de perfil atualizada!", "save");
+        fetchAndSetAvatar(userData.id);
+        setShowAvatarManager(false);
+      } else {
+        showNotification("Erro ao atualizar foto", "error");
+      }
+    } catch (err) {
+      showNotification("Erro ao fazer upload da foto", "error");
+    }
+  };
+
+  const handleDeletePhoto = async () => {
+    const token = auth?.user?.access_token;
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/user/me/avatar`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        showNotification("Foto removida com sucesso!", "save");
+        setProfileImage(prev => {
+          if (prev) URL.revokeObjectURL(prev);
+          return null;
+        });
+        setShowAvatarManager(false);
+      } else {
+        showNotification("Erro ao remover a foto no servidor.", "error");
+      }
+    } catch (err) {
+      showNotification("Erro ao remover foto", "error");
+    }
+  };
+
+  const handleLogoutConfirm = async () => {
+    // sinaliza para a landing page exibir o aviso de "você saiu da sua conta"
+    sessionStorage.setItem(LOGOUT_FLAG_KEY, '1');
+    setShowLogoutModal(false);
+
+    const idTokenHint = auth?.user?.id_token;
+    try {
+      await auth.removeUser();
+      clearOidcStorage();
+      await auth.signoutRedirect(
+        idTokenHint ? { id_token_hint: idTokenHint } : undefined
+      );
+    } catch (_err) {
+      clearOidcStorage();
+      window.location.replace('/');
     }
   };
 
@@ -156,16 +248,29 @@ export default function DashboardLayout({ children }) {
         </div>
       )}
 
-      <aside className={styles.sidebar}>
+      {/* Overlay for mobile sidebar */}
+      {isSidebarOpen && (
+        <div className={styles.sidebarOverlay} onClick={() => setIsSidebarOpen(false)}></div>
+      )}
+
+      <aside className={`${styles.sidebar} ${isSidebarOpen ? styles.open : ''}`}>
         <div className={styles.logoArea}>
           <div className={styles.logoIcon}>T</div>
           <div className={styles.logoText}>Task <br /> Flow</div>
+          <button className={styles.closeSidebarBtn} onClick={() => setIsSidebarOpen(false)}>
+            <FaTimes size={20} />
+          </button>
         </div>
 
-        <nav className={styles.menu}>
+        <nav className={styles.menu} onClick={() => setIsSidebarOpen(false)}>
           <Link to="/dashboard" className={`${styles.menuItem} ${isActive('/dashboard') ? styles.active : ''}`}>
             <span>Dashboard</span>
             <FaChartPie size={20} />
+          </Link>
+
+          <Link to="/organizations" className={`${styles.menuItem} ${isActive('/organizations') ? styles.active : ''}`}>
+            <span>Organizações</span>
+            <FaBuilding size={20} />
           </Link>
 
           {/* --- AQUI ESTÁ A NOVA OPÇÃO DO KANBAN --- */}
@@ -195,23 +300,75 @@ export default function DashboardLayout({ children }) {
       </aside>
 
       <main className={styles.mainContent}>
-        <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '20px' }}>
-
-          <div className={styles.themeToggle} onClick={toggleTheme} style={{ cursor: 'pointer', marginRight: '20px' }}>
-            {theme === 'dark' ? <FaMoon size={22} color="#fff" /> : <FaSun size={22} color="#f59e0b" />}
+        <div className={styles.topBar}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+            <button className={styles.hamburger} onClick={() => setIsSidebarOpen(true)}>
+              <FaBars />
+            </button>
+            {location.pathname !== '/organizations' && (
+              <div className={styles.orgSelectorWrapper} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <FaBuilding size={20} color="var(--primary-blue)" className={styles.hideOnMobile} />
+                <span style={{
+                  padding: '8px 12px',
+                  color: 'var(--text-primary, #333)',
+                  fontSize: '1.1rem',
+                  fontWeight: 'bold'
+                }}>
+                  {currentOrg?.nome || 'Organização Não Selecionada'}
+                </span>
+              </div>
+            )}
           </div>
 
-          <div onClick={() => setShowProfileModal(true)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
-              {userData.nome.split(' ')[0]}
-            </span>
-            <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#ccc', overflow: 'hidden', border: '2px solid var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {profileImage ? <img src={profileImage} alt="Nav" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : null}
+          <div style={{ display: 'flex', alignItems: 'center' }}>
+            
+            {/* Bell Notification */}
+            <div style={{ position: 'relative', marginRight: '20px', cursor: 'pointer' }}>
+              <div onClick={() => setShowInvitesDropdown(!showInvitesDropdown)}>
+                <FaBell size={22} color="var(--primary-blue)" />
+                {invites.length > 0 && (
+                  <div style={{ position: 'absolute', top: '-5px', right: '-5px', background: 'red', color: 'white', borderRadius: '50%', width: '16px', height: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '10px', fontWeight: 'bold' }}>
+                    {invites.length}
+                  </div>
+                )}
+              </div>
+              {showInvitesDropdown && (
+                <div style={{ position: 'absolute', top: '30px', right: '0', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', width: '250px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', zIndex: 100, padding: '10px' }}>
+                  <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: 'var(--text-primary)' }}>Convites Pendentes</h4>
+                  {invites.length === 0 ? (
+                    <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: 0 }}>Nenhum convite.</p>
+                  ) : (
+                    invites.map(inv => (
+                      <div key={inv.id} style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '10px' }}>
+                        <p style={{ fontSize: '12px', margin: '0 0 5px 0', color: 'var(--text-primary)' }}><strong>{inv.organizationName}</strong></p>
+                        <p style={{ fontSize: '11px', margin: '0 0 10px 0', color: 'var(--text-secondary)' }}>por {inv.inviterName}</p>
+                        <div style={{ display: 'flex', gap: '5px' }}>
+                          <button onClick={() => handleInviteAction(inv.id, 'accept')} style={{ flex: 1, background: 'green', color: 'white', border: 'none', borderRadius: '4px', padding: '5px', cursor: 'pointer', fontSize: '11px' }}>Aceitar</button>
+                          <button onClick={() => handleInviteAction(inv.id, 'decline')} style={{ flex: 1, background: 'red', color: 'white', border: 'none', borderRadius: '4px', padding: '5px', cursor: 'pointer', fontSize: '11px' }}>Recusar</button>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+            </div>
+            <div className={styles.themeToggle} onClick={toggleTheme} style={{ cursor: 'pointer', marginRight: '20px' }}>
+              {theme === 'dark' ? <FaMoon size={22} color="#fff" /> : <FaSun size={22} color="#f59e0b" />}
+            </div>
+
+            <div onClick={() => setShowProfileModal(true)} style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <span style={{ fontWeight: 'bold', color: 'var(--text-primary)' }}>
+                {userData.nome.split(' ')[0]}
+              </span>
+              <div style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#fff', overflow: 'hidden', border: '2px solid var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                {profileImage ? <img src={profileImage} alt="Nav" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.onerror = null; setProfileImage(null);
+          setShowAvatarManager(false); }} /> : <FaUser size={20} color="var(--primary-blue)" />}
+              </div>
             </div>
           </div>
         </div>
 
-        {children}
+        <Outlet />
       </main>
 
       {showLogoutModal && (
@@ -235,19 +392,21 @@ export default function DashboardLayout({ children }) {
             </div>
 
             <div className={styles.profileHeader} style={{ marginBottom: '30px' }}>
-              <label htmlFor="avatar-upload" style={{ cursor: 'pointer', position: 'relative' }}>
-                <div className={styles.avatarCircle} style={{ position: 'relative', overflow: 'hidden', width: '90px', height: '90px', borderRadius: '50%', border: '3px solid var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 15px auto' }}>
+              <div onClick={() => setShowAvatarManager(true)} style={{ cursor: 'pointer', position: 'relative' }}>
+                <div className={styles.avatarCircle} style={{ position: 'relative', overflow: 'hidden', width: '90px', height: '90px', borderRadius: '50%', border: '3px solid var(--primary-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#fff', margin: '0 auto 15px auto' }}>
                   {profileImage ? (
-                    <img src={profileImage} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={profileImage} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.onerror = null; setProfileImage(null);
+        setShowAvatarManager(false); }} />
                   ) : (
-                    <FaCamera size={24} color="#ccc" />
+                    <FaUser size={40} color="var(--primary-blue)" />
                   )}
                   <div style={{ position: 'absolute', inset: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0, transition: '0.3s' }} onMouseEnter={(e) => e.currentTarget.style.opacity = 1} onMouseLeave={(e) => e.currentTarget.style.opacity = 0}>
                     <FaCamera color="#fff" />
                   </div>
                 </div>
-              </label>
-              <input id="avatar-upload" type="file" accept="image/*" hidden onChange={handlePhotoChange} />
+              </div>
+              
+
               <h2 style={{ fontSize: '1.5rem', color: 'var(--text-primary)', margin: 0 }}>{userData.nome}</h2>
             </div>
 
@@ -285,44 +444,22 @@ export default function DashboardLayout({ children }) {
 
               <div style={{ borderTop: '1px solid var(--border-color, #eee)', paddingTop: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
 
-                <button type="button" onClick={handlePasswordToggle} className={styles.btnCancel} style={{ padding: '10px 25px', margin: 0, borderRadius: '20px', fontWeight: 'bold' }}>
-                  {isChangingPassword ? 'Cancelar Alteração' : 'Mudar Senha de Acesso'}
+                <button type="button" onClick={() => window.open(`${import.meta.env.VITE_KEYCLOAK_AUTHORITY}/account/`, '_blank')} className={styles.btnCancel} style={{ padding: '10px 25px', margin: 0, borderRadius: '20px', fontWeight: 'bold', background: 'var(--primary-blue)', color: 'white' }}>
+                  Gerenciar Conta
                 </button>
-
-                {isChangingPassword && (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '15px', width: '100%', animation: 'fadeIn 0.3s' }}>
-
-                    {/* Substituição pelos componentes PasswordInput */}
-                    <PasswordInput
-                      placeholder="Digite sua senha atual..."
-                      value={currentPassword}
-                      onChange={(e) => setCurrentPassword(e.target.value)}
-                      style={{ width: '100%', padding: '12px', paddingRight: '40px', borderRadius: '8px', border: '1px solid #ddd', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
-                      autoFocus
-                    />
-
-                    <PasswordInput
-                      placeholder="Crie uma nova senha..."
-                      value={newPassword}
-                      onChange={(e) => setNewPassword(e.target.value)}
-                      style={{ width: '100%', padding: '12px', paddingRight: '40px', borderRadius: '8px', border: '2px solid var(--primary-blue)', background: 'var(--bg-card)', color: 'var(--text-primary)' }}
-                    />
-
-                    <button
-                      type="button"
-                      onClick={handlePasswordConfirm}
-                      className={styles.btnConfirm}
-                      style={{ width: '100%', padding: '12px' }}
-                      disabled={isLoadingPassword}
-                    >
-                      {isLoadingPassword ? 'Verificando e Salvando...' : 'Confirmar Nova Senha'}
-                    </button>
-                  </div>
-                )}
               </div>
             </div>
           </div>
         </div>
+      )}
+
+      {showAvatarManager && (
+        <AvatarManager
+          currentImage={profileImage}
+          onClose={() => setShowAvatarManager(false)}
+          onUpload={handleUploadBlob}
+          onDelete={handleDeletePhoto}
+        />
       )}
     </div>
   );

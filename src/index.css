@@ -15,7 +15,8 @@ body.dark {
   --text-primary: #ffffff;  
   --text-secondary: #94a3b8;
   --primary-blue: #3b82f6;  
-  --danger: #ef4444;        
+  --danger: #ef4444;
+  --border-color: #334155;
 }
 
 
@@ -27,6 +28,7 @@ body.light {
   --text-secondary: #64748b;
   --primary-blue: #2563eb;
   --danger: #dc2626;
+  --border-color: #e2e8f0;
 }
 
 body {
@@ -34,4 +36,29 @@ body {
   color: var(--text-primary);
   min-height: 100vh;
   transition: background-color 0.4s ease, color 0.4s ease;
+}
+/* Custom Rounded Checkbox */
+.customCheckbox {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 2px solid #ccc;
+  background-color: var(--bg-card);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  display: inline-block;
+  margin: 0;
+}
+
+.customCheckbox:checked {
+  background-color: var(--primary-blue);
+  border-color: var(--primary-blue);
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'%3E%3C/polyline%3E%3C/svg%3E");
+  background-size: 65%;
+  background-position: center;
+  background-repeat: no-repeat;
 }

@@ -1,3 +1,4 @@
+import { toast } from 'react-toastify';
 import React, { useState } from 'react';
 import styles from './CreateTeamTask.module.css'; 
 import { FaUsers, FaPlus, FaTrash, FaExclamationTriangle, FaCalendarAlt } from 'react-icons/fa';
@@ -13,7 +14,7 @@ export default function CreateTeamTask({ onCancel, onSave }) {
 
     if (!taskName.trim() || !deadline || members.filter(m => m.trim() !== '').length === 0) {
       
-      alert("Por favor, preencha o nome, o prazo e adicione ao menos um membro.");
+      toast.error("Por favor, preencha o nome, o prazo e adicione ao menos um membro.");
       return;
     }
 

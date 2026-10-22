@@ -5,6 +5,9 @@ services:
       context: .
       args:
         VITE_API_URL: ${VITE_API_URL} # lê url do .env
+        VITE_KEYCLOAK_AUTHORITY: ${VITE_KEYCLOAK_AUTHORITY}
+        VITE_KEYCLOAK_CLIENT_ID: ${VITE_KEYCLOAK_CLIENT_ID}
+        VITE_REDIRECT_URI: ${VITE_REDIRECT_URI}
       dockerfile: Dockerfile
     container_name: taskflow_frontend
     ports:
