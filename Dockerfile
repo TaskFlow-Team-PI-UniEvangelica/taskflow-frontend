@@ -1,5 +1,5 @@
-# Build SPA usando a plataforma nativa do runner ($BUILDPLATFORM)
-FROM --platform=$BUILDPLATFORM node:20-bookworm-slim AS build
+# Build SPA
+FROM node:20-bookworm-slim AS build
 WORKDIR /app
 
 COPY package*.json ./
