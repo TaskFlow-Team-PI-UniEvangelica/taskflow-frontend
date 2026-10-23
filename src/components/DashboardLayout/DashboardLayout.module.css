@@ -11,6 +11,8 @@
 
 .sidebar {
   width: 200px; 
+  height: 100%;
+  max-height: 100vh;
   background-color: var(--bg-sidebar); 
   border-top-right-radius: 25px;
   border-bottom-right-radius: 25px;
@@ -20,13 +22,36 @@
   box-shadow: 5px 0 15px rgba(0, 0, 0, 0.05);
   z-index: 10;
   transition: width 0.3s ease, background-color 0.4s ease;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(128, 128, 128, 0.2) transparent;
+}
+
+.sidebar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: rgba(128, 128, 128, 0.2);
+  border-radius: 4px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: rgba(128, 128, 128, 0.4);
 }
 
 .logoArea {
   display: flex;
   align-items: center;
   gap: 10px;
-  margin-bottom: 40px;
+  margin-bottom: clamp(18px, 3.5vh, 40px);
+  flex-shrink: 0;
 }
 
 .logoIcon {
@@ -54,6 +79,7 @@
   flex-direction: column;
   gap: 8px;
   flex: 1; 
+  min-height: min-content;
 }
 
 .menuItem {
@@ -98,6 +124,8 @@
 .logoutBtn {
   margin-top: auto; 
   color: #ef4444; 
+  flex-shrink: 0;
+  padding-top: 10px;
 }
 
 .logoutBtn:hover {
@@ -261,10 +289,13 @@
     top: 0;
     left: -260px;
     height: 100vh;
+    max-height: 100vh;
     width: 260px;
     border-radius: 0;
     box-shadow: 2px 0 15px rgba(0,0,0,0.2);
     transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    overflow-y: auto;
+    overflow-x: hidden;
   }
   
   .sidebar.open {
@@ -306,4 +337,53 @@
     margin: -15px -15px 20px -15px;
     border-bottom: 1px solid var(--border-color);
   }
-}
+}
+
+/* Responsividade para telas ou janelas com altura vertical reduzida (low viewport height) */
+@media (max-height: 680px) {
+  .sidebar {
+    padding: 15px 10px;
+  }
+  
+  .logoArea {
+    margin-bottom: 12px;
+    gap: 8px;
+  }
+  
+  .logoIcon {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+    border-radius: 8px;
+  }
+  
+  .logoText {
+    font-size: 1rem;
+  }
+  
+  .menu {
+    gap: 4px;
+  }
+  
+  .menuItem {
+    padding: 7px 10px;
+    margin-bottom: 3px;
+    font-size: 0.88rem;
+  }
+}
+
+@media (max-height: 480px) {
+  .sidebar {
+    padding: 10px 8px;
+  }
+  
+  .logoArea {
+    margin-bottom: 8px;
+  }
+  
+  .menuItem {
+    padding: 5px 8px;
+    margin-bottom: 2px;
+    font-size: 0.82rem;
+  }
+}
