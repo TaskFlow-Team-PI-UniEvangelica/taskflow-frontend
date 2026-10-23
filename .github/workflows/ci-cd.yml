@@ -1,0 +1,77 @@
+name: CI/CD Frontend
+
+on:
+  push:
+    branches: [main, master, homol]
+  pull_request:
+    branches: [main, master, homol]
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Validação Lint & Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run lint || echo "Avisos de lint encontrados"
+      - run: npm run build
+        env:
+          VITE_API_URL: ${{ vars.VITE_API_URL || 'https://api.taskflow.party' }}
+          VITE_KEYCLOAK_AUTHORITY: ${{ vars.VITE_KEYCLOAK_AUTHORITY || 'https://auth.taskflow.party/realms/taskflow-realm' }}
+          VITE_KEYCLOAK_CLIENT_ID: ${{ vars.VITE_KEYCLOAK_CLIENT_ID || 'taskflow-frontend' }}
+          VITE_REDIRECT_URI: ${{ vars.VITE_REDIRECT_URI || 'https://taskflow.party' }}
+
+  image:
+    name: Build & Push Imagem ARM64
+    needs: build
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - run: echo "OWNER=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/arm64
+          push: true
+          build-args: |
+            VITE_API_URL=${{ vars.VITE_API_URL || 'https://api.taskflow.party' }}
+            VITE_KEYCLOAK_AUTHORITY=${{ vars.VITE_KEYCLOAK_AUTHORITY || 'https://auth.taskflow.party/realms/taskflow-realm' }}
+            VITE_KEYCLOAK_CLIENT_ID=${{ vars.VITE_KEYCLOAK_CLIENT_ID || 'taskflow-frontend' }}
+            VITE_REDIRECT_URI=${{ vars.VITE_REDIRECT_URI || 'https://taskflow.party' }}
+          tags: |
+            ghcr.io/${{ env.OWNER }}/taskflow-frontend:${{ github.sha }}
+            ghcr.io/${{ env.OWNER }}/taskflow-frontend:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  deploy:
+    name: Deploy na Oracle Cloud
+    needs: image
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: deploy
+          key: ${{ secrets.SERVER_SSH_KEY }}
+          fingerprint: ${{ secrets.SERVER_SSH_FINGERPRINT }}
+          script: /srv/taskflow/scripts/deploy.sh frontend ${{ github.sha }}

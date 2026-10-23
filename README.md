@@ -88,14 +88,14 @@ VITE_REDIRECT_URI=http://localhost:5173
 No servidor, é usado domínios oficiais que apontam para o Cloudflare Tunnels.
 ```env
 # URL da sua API Pública (Com HTTPS)
-VITE_API_URL=https://api.taskflow.com.br
+VITE_API_URL=https://api.taskflow.party
 
 # Configurações do Keycloak (Público via Cloudflare)
-VITE_KEYCLOAK_AUTHORITY=https://auth.taskflow.com.br/realms/taskflow-realm
+VITE_KEYCLOAK_AUTHORITY=https://auth.taskflow.party/realms/taskflow-realm
 VITE_KEYCLOAK_CLIENT_ID=taskflow-frontend
 
 # URL de redirecionamento (A URL oficial do Front-end)
-VITE_REDIRECT_URI=https://taskflow.com.br
+VITE_REDIRECT_URI=https://taskflow.party
 ```
 
 ## Passos para rodar via Linux (Docker + Makefile)
