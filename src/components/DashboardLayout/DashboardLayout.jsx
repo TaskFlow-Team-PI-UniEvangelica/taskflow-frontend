@@ -6,7 +6,6 @@ import styles from './DashboardLayout.module.css';
 import { FaUser, FaTrash, FaChartPie, FaTasks, FaUsers, FaSignOutAlt, FaTimes, FaMoon, FaSun, FaSave, FaKey, FaCamera, FaIdBadge, FaEnvelope, FaBriefcase, FaEdit, FaTrello, FaBuilding, FaBell, FaBars } from 'react-icons/fa';
 import { useTheme } from '../../context/ThemeContext';
 import { OrganizationContext } from '../../context/OrganizationContext';
-import PasswordInput from '../UI/PasswordInput';
 import AvatarManager from './AvatarManager';
 import { LOGOUT_FLAG_KEY, clearOidcStorage } from '../../auth/keycloakConfig';
 
@@ -14,16 +13,9 @@ export default function DashboardLayout() {
   const auth = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-
-  // --- MUDANÇA 1: Adicionado estado para a senha atual ---
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAvatarManager, setShowAvatarManager] = useState(false);
-  const [isLoadingPassword, setIsLoadingPassword] = useState(false);
   const [invites, setInvites] = useState([]);
   const [showInvitesDropdown, setShowInvitesDropdown] = useState(false);
 
@@ -388,7 +380,7 @@ export default function DashboardLayout() {
         <div className={styles.modalOverlay}>
           <div className={styles.modalBox} style={{ maxWidth: '450px' }}>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <FaTimes onClick={() => { setShowProfileModal(false); setIsChangingPassword(false); }} style={{ cursor: 'pointer', color: 'var(--text-secondary)' }} />
+              <FaTimes onClick={() => { setShowProfileModal(false); }} style={{ cursor: 'pointer', color: 'var(--text-secondary)' }} />
             </div>
 
             <div className={styles.profileHeader} style={{ marginBottom: '30px' }}>
