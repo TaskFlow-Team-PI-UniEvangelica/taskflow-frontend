@@ -7,6 +7,7 @@ import { FaUser, FaTrash, FaChartPie, FaTasks, FaUsers, FaSignOutAlt, FaTimes, F
 import { useTheme } from '../../context/ThemeContext';
 import { OrganizationContext } from '../../context/OrganizationContext';
 import AvatarManager from './AvatarManager';
+import ErrorBoundary from '../ErrorBoundary/ErrorBoundary';
 import { LOGOUT_FLAG_KEY, clearOidcStorage } from '../../auth/keycloakConfig';
 
 export default function DashboardLayout() {
@@ -360,7 +361,10 @@ export default function DashboardLayout() {
           </div>
         </div>
 
-        <Outlet />
+        {/* Erro em uma página não derruba o layout; a navegação para outra rota limpa o erro */}
+        <ErrorBoundary resetKey={location.pathname}>
+          <Outlet />
+        </ErrorBoundary>
       </main>
 
       {showLogoutModal && (

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
 
@@ -20,6 +20,7 @@ import {
 } from './auth/keycloakConfig';
 import { signupRedirect } from './auth/signup';
 import { ToastContainer } from 'react-toastify';
+import SessionErrorModal from './components/SessionErrorModal/SessionErrorModal';
 import 'react-toastify/dist/ReactToastify.css';
 
 /**
@@ -129,6 +130,16 @@ function App() {
 
   const errorHandledRef = useRef(null);
 
+  // Aviso ao usuário quando a autenticação falha: exibido uma vez por erro, até ser fechado.
+  const [dismissedAuthError, setDismissedAuthError] = useState(null);
+  const showSessionError = Boolean(auth.error) && dismissedAuthError !== auth.error;
+
+  const handleSessionErrorLogin = () => {
+    setDismissedAuthError(auth.error);
+    window.localStorage.removeItem(REGISTER_FLOW_KEY);
+    auth.signinRedirect({ redirectMethod: 'replace' });
+  };
+
   // 3. Limpeza imediata de parâmetros residuais de callback caso ocorra erro (protegido contra loop de re-render)
   useEffect(() => {
     if (!auth.error) {
@@ -183,6 +194,13 @@ function App() {
         {/* Qualquer outra rota: redireciona para a Landing Page (/) com replace */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+      {showSessionError && (
+        <SessionErrorModal
+          onLogin={handleSessionErrorLogin}
+          onClose={() => setDismissedAuthError(auth.error)}
+        />
+      )}
     </Router>
   );
 }

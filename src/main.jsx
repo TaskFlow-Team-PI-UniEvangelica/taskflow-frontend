@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.jsx'
 import { ThemeProvider } from './context/ThemeContext.jsx';
+import ErrorBoundary from './components/ErrorBoundary/ErrorBoundary.jsx';
 import { AuthProvider } from 'react-oidc-context';
 // chaves do keycloack (centralizadas para serem reaproveitadas no fluxo de cadastro)
 import { keycloakConfig, hasActiveStoredToken } from './auth/keycloakConfig';
@@ -17,9 +18,12 @@ if (hasActiveStoredToken() && window.location.search && window.location.search.i
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <ThemeProvider>
-      <AuthProvider {...keycloakConfig}>
-        <App />
-      </AuthProvider>
+      {/* Última proteção: evita tela branca se qualquer parte da aplicação falhar ao renderizar */}
+      <ErrorBoundary fullPage>
+        <AuthProvider {...keycloakConfig}>
+          <App />
+        </AuthProvider>
+      </ErrorBoundary>
     </ThemeProvider>
   </StrictMode>,
 )
