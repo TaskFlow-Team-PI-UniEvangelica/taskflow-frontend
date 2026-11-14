@@ -20,18 +20,16 @@ export default function Kanban() {
     if (!task || !currentOrg) return false;
     if (isAboveMember) return true;
 
+    // Identificação apenas por ID, como no backend (nomes podem se repetir).
     const isCreator = Boolean(
       currentUser &&
-      ((task.criadorId != null && Number(task.criadorId) === Number(currentUser.id)) ||
-       (task.nomeCriador && currentUser.nome && task.nomeCriador === currentUser.nome))
+      task.criadorId != null &&
+      Number(task.criadorId) === Number(currentUser.id)
     );
     const isAssignee = Boolean(
       currentUser &&
-      ((Array.isArray(task.idsResponsaveis) &&
-        task.idsResponsaveis.some(id => Number(id) === Number(currentUser.id))) ||
-       (Array.isArray(task.nomesResponsaveis) &&
-        currentUser.nome &&
-        task.nomesResponsaveis.includes(currentUser.nome)))
+      Array.isArray(task.idsResponsaveis) &&
+      task.idsResponsaveis.some(id => Number(id) === Number(currentUser.id))
     );
 
     const canMove =
