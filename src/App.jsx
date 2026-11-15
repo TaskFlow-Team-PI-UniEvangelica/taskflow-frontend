@@ -55,6 +55,13 @@ function App() {
     (!auth.error && hasActiveStoredToken())
   );
 
+  // Access token vencido, mas com refresh token: a sessão pode ser renovada sem novo login.
+  // Acontece ao abrir/recarregar o app depois de o token expirar (a biblioteca só renova sozinha
+  // tokens que ainda não venceram).
+  const needsSessionRenewal = Boolean(
+    !auth.isLoading && !auth.error && auth.user?.expired && auth.user?.refresh_token
+  );
+
   const isPostRegisterRedirect =
     startSignupParam ||
     startLoginParam ||
@@ -106,12 +113,14 @@ function App() {
     }
   }, [auth.isLoading, auth, startSignupParam, startLoginParam]);
 
-  // 2. Auto-recuperação de falhas de renovação silenciosa ou sessão encerrada no Keycloak
+  // 2. Auto-recuperação: a sessão só é descartada quando a renovação falha ou a sessão é encerrada
+  //    no Keycloak. A expiração do access token é normal (ele dura minutos) e não encerra a sessão.
   useEffect(() => {
     if (!auth?.events) return undefined;
 
     const handleSessionInvalidated = () => {
       clearOidcStorage();
+      auth.removeUser().catch(() => {});
       if (window.location.pathname !== '/' && !window.location.pathname.startsWith('/dashboard')) {
         window.history.replaceState({}, document.title, '/');
       }
@@ -119,14 +128,29 @@ function App() {
 
     const unsubSilentError = auth.events.addSilentRenewError(handleSessionInvalidated);
     const unsubSignedOut = auth.events.addUserSignedOut(handleSessionInvalidated);
-    const unsubExpired = auth.events.addAccessTokenExpired(handleSessionInvalidated);
 
     return () => {
       if (typeof unsubSilentError === 'function') unsubSilentError();
       if (typeof unsubSignedOut === 'function') unsubSignedOut();
-      if (typeof unsubExpired === 'function') unsubExpired();
     };
-  }, [auth?.events]);
+  }, [auth?.events, auth]);
+
+  // 2.1 Renova a sessão quando o app abre com o access token vencido (uma tentativa por vez).
+  //     Se o refresh token também não valer mais, a falha aparece no aviso de sessão expirada.
+  const renewingRef = useRef(false);
+  useEffect(() => {
+    if (!needsSessionRenewal || renewingRef.current) return;
+    renewingRef.current = true;
+    auth
+      .signinSilent()
+      .catch(() => {
+        clearOidcStorage();
+        auth.removeUser().catch(() => {});
+      })
+      .finally(() => {
+        renewingRef.current = false;
+      });
+  }, [needsSessionRenewal, auth]);
 
   const errorHandledRef = useRef(null);
 
@@ -159,7 +183,7 @@ function App() {
   }, [auth.error]);
 
   // Condicional de carregamento apenas durante o handshake inicial ou redirecionamento pós-cadastro
-  if (auth.isLoading || isPostRegisterRedirect) {
+  if (auth.isLoading || isPostRegisterRedirect || needsSessionRenewal) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '20px' }}>
         <div style={{
@@ -169,7 +193,9 @@ function App() {
           fontSize: '1.8rem', fontWeight: 'bold', animation: 'pulse 1.5s infinite'
         }}>T</div>
         <div style={{ color: 'var(--text-secondary)', fontWeight: '500' }}>
-          {isPostRegisterRedirect ? 'Redirecionando para o login...' : 'Iniciando TaskFlow...'}
+          {isPostRegisterRedirect
+            ? 'Redirecionando para o login...'
+            : needsSessionRenewal ? 'Renovando sua sessão...' : 'Iniciando TaskFlow...'}
         </div>
       </div>
     );
