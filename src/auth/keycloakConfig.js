@@ -16,7 +16,24 @@ export const oidcSettings = {
   redirect_uri: import.meta.env.VITE_REDIRECT_URI,
   response_type: "code",
   post_logout_redirect_uri: import.meta.env.VITE_REDIRECT_URI,
-  userStore: new WebStorageStateStore({ store: window.localStorage }),
+  // Tokens (access, refresh e id) ficam no sessionStorage: valem só para a aba e somem ao fechá-la.
+  // Uma aba nova entra pelo SSO do Keycloak, sem pedir senha enquanto a sessão estiver ativa.
+  userStore: new WebStorageStateStore({ store: window.sessionStorage }),
+};
+
+/**
+ * Remove tokens que versões anteriores guardavam no localStorage (persistiam após fechar o navegador).
+ */
+export const removeLegacyLocalTokens = () => {
+  try {
+    Object.keys(window.localStorage).forEach((key) => {
+      if (key.startsWith('oidc.user:')) {
+        window.localStorage.removeItem(key);
+      }
+    });
+  } catch {
+    // storage indisponível: nada a limpar
+  }
 };
 
 /**
@@ -41,12 +58,12 @@ export const clearOidcStorage = () => {
 };
 
 /**
- * Verifica se já existe um token ativo e não expirado salvo no storage local.
+ * Verifica se já existe um token ativo e não expirado salvo no storage da aba.
  */
 export const hasActiveStoredToken = () => {
   try {
     const storageKey = `oidc.user:${oidcSettings.authority}:${oidcSettings.client_id}`;
-    const rawUser = window.localStorage.getItem(storageKey);
+    const rawUser = window.sessionStorage.getItem(storageKey);
     if (!rawUser) return false;
     const parsed = JSON.parse(rawUser);
     if (!parsed || !parsed.access_token) return false;

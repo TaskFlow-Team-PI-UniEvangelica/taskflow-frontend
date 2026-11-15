@@ -14,8 +14,9 @@ server {
     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
     
-    # Content-Security-Policy em modo Report-Only inicial para validação segura
-    add_header Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ${API_ORIGIN} ${AUTH_ORIGIN}; frame-ancestors 'none'; base-uri 'self'; object-src 'none'" always;
+    # Content-Security-Policy efetiva: scripts só do próprio domínio (o build do Vite não gera script inline).
+    # style-src mantém 'unsafe-inline' porque o React e o react-toastify aplicam estilos inline.
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ${API_ORIGIN} ${AUTH_ORIGIN}; frame-ancestors 'none'; base-uri 'self'; object-src 'none'" always;
 
     # Assets estáticos empacotados com hash pelo Vite recebem cache longo
     location /assets/ {
