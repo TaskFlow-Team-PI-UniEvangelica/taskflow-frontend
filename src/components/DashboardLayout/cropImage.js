@@ -7,6 +7,11 @@ export const createImage = (url) =>
     image.src = url
   })
 
+// O avatar é exibido em no máximo ~70px; 512px cobre telas de alta densidade
+// e mantém o arquivo em poucas dezenas de KB (o backend aceita até 2MB).
+export const AVATAR_MAX_SIZE = 512
+const AVATAR_JPEG_QUALITY = 0.9
+
 export async function getCroppedImg(imageSrc, pixelCrop) {
   const image = await createImage(imageSrc)
   const canvas = document.createElement('canvas')
@@ -14,9 +19,12 @@ export async function getCroppedImg(imageSrc, pixelCrop) {
 
   if (!ctx) return null
 
-  canvas.width = pixelCrop.width
-  canvas.height = pixelCrop.height
+  // Reduz o recorte (nunca amplia) para no máximo AVATAR_MAX_SIZE no maior lado
+  const scale = Math.min(1, AVATAR_MAX_SIZE / Math.max(pixelCrop.width, pixelCrop.height))
+  canvas.width = Math.max(1, Math.round(pixelCrop.width * scale))
+  canvas.height = Math.max(1, Math.round(pixelCrop.height * scale))
 
+  ctx.imageSmoothingQuality = 'high'
   ctx.drawImage(
     image,
     pixelCrop.x,
@@ -25,13 +33,13 @@ export async function getCroppedImg(imageSrc, pixelCrop) {
     pixelCrop.height,
     0,
     0,
-    pixelCrop.width,
-    pixelCrop.height
+    canvas.width,
+    canvas.height
   )
 
   return new Promise((resolve) => {
     canvas.toBlob((file) => {
       resolve(file)
-    }, 'image/jpeg')
+    }, 'image/jpeg', AVATAR_JPEG_QUALITY)
   })
 }
