@@ -2,7 +2,7 @@ import { toast } from 'react-toastify';
 import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
-import { OrganizationContext } from '../../context/OrganizationContext';
+import { OrganizationContext } from '../../context/OrganizationContextObject';
 import styles from './Equipe.module.css';
 import { FaUserCircle, FaEnvelope, FaSearch, FaPlus, FaArrowLeft, FaTimes, FaCog, FaInfoCircle } from 'react-icons/fa';
 
@@ -77,7 +77,7 @@ export default function Equipe() {
       } else {
         toast.error('Erro ao convidar membro.');
       }
-    } catch (err) {
+    } catch {
       toast.error('Erro de rede.');
     }
   };
@@ -126,7 +126,7 @@ export default function Equipe() {
           } else {
             toast.error("Você não tem permissão para realizar esta ação.");
           }
-        } catch (err) {
+        } catch {
           toast.error("Erro de rede.");
         }
       }
@@ -155,7 +155,7 @@ export default function Equipe() {
           } else {
             toast.error("Erro ao transferir a posse.");
           }
-        } catch (err) {
+        } catch {
           toast.error("Erro de rede.");
         }
       }
@@ -179,7 +179,7 @@ export default function Equipe() {
       } else {
         toast.error('Erro ao atualizar papel do usuário.');
       }
-    } catch (err) {
+    } catch {
       toast.error('Erro de rede.');
     }
   };

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useContext } from 'react';
 import { useAuth } from 'react-oidc-context';
 import { FaHistory, FaTrashAlt } from 'react-icons/fa';
-import { OrganizationContext } from '../../context/OrganizationContext';
+import { OrganizationContext } from '../../context/OrganizationContextObject';
 import TaskTimeline from '../../components/TaskHistory/TaskTimeline';
 import DeletedTasksModal from '../../components/TaskHistory/DeletedTasksModal';
 import styles from './Kanban.module.css';
@@ -63,6 +63,8 @@ export default function Kanban() {
 
   // Observa apenas o ID da organização para evitar recarregar os cards quando configurações mudam em background
   useEffect(() => {
+    // Ao trocar de organização: busca as tarefas na API e fecha o painel de histórico da organização anterior.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchTasks();
     setHistoryTask(null);
   }, [currentOrg?.id]);

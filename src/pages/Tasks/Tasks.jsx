@@ -1,6 +1,6 @@
 import { useAuth } from 'react-oidc-context';
 import React, { useState, useEffect, useContext } from 'react';
-import { OrganizationContext } from '../../context/OrganizationContext';
+import { OrganizationContext } from '../../context/OrganizationContextObject';
 import styles from './Tasks.module.css';
 import { FaCheckCircle, FaCalendarAlt, FaUsers } from 'react-icons/fa'; 
 

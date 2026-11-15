@@ -5,7 +5,7 @@ import styles from './DashboardLayout.module.css';
 // --- MUDANÇA: FaTrello adicionado na lista de importações abaixo ---
 import { FaUser, FaTrash, FaChartPie, FaTasks, FaUsers, FaSignOutAlt, FaTimes, FaMoon, FaSun, FaSave, FaKey, FaCamera, FaIdBadge, FaEnvelope, FaBriefcase, FaEdit, FaTrello, FaBuilding, FaBell, FaBars } from 'react-icons/fa';
 import { useTheme } from '../../context/ThemeContext';
-import { OrganizationContext } from '../../context/OrganizationContext';
+import { OrganizationContext } from '../../context/OrganizationContextObject';
 import AvatarManager from './AvatarManager';
 import ErrorBoundary from '../ErrorBoundary/ErrorBoundary';
 import { LOGOUT_FLAG_KEY, clearOidcStorage } from '../../auth/keycloakConfig';
@@ -66,7 +66,7 @@ export default function DashboardLayout() {
 
     return () => clearInterval(interval);
   }, [auth?.user?.access_token]);
-  const { organizations, currentOrg, selectOrganization, refreshOrganizations } = useContext(OrganizationContext);
+  const { currentOrg, refreshOrganizations } = useContext(OrganizationContext);
 
   const handleInviteAction = async (inviteId, action) => {
     const token = auth?.user?.access_token;
@@ -84,7 +84,7 @@ export default function DashboardLayout() {
       } else {
         showNotification('Erro ao processar convite', 'error');
       }
-    } catch (e) {
+    } catch {
       showNotification('Erro interno', 'error');
     }
   };
@@ -93,6 +93,102 @@ export default function DashboardLayout() {
     setTimeout(() => setToast({ show: false, message: '', type: '' }), 3000);
   };
 
+
+
+  
+  const fetchAndSetAvatar = async (userId) => {
+    const token = auth?.user?.access_token;
+    if (!token) return;
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/user/${userId}/avatar`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        setProfileImage(prev => {
+          if (prev) URL.revokeObjectURL(prev);
+          return objectUrl;
+        });
+      } else {
+        setProfileImage(prev => {
+          if (prev) URL.revokeObjectURL(prev);
+          return null;
+        });
+        setShowAvatarManager(false);
+      }
+    } catch {
+      setProfileImage(prev => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      setShowAvatarManager(false);
+    }
+  };
+
+  const handleUploadBlob = async (blob) => {
+    const formData = new FormData();
+    formData.append('file', blob, 'avatar.jpg');
+    const token = auth?.user?.access_token;
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/user/me/avatar`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      if (response.ok) {
+        showNotification("Foto de perfil atualizada!", "save");
+        fetchAndSetAvatar(userData.id);
+        setShowAvatarManager(false);
+      } else {
+        showNotification("Erro ao atualizar foto", "error");
+      }
+    } catch {
+      showNotification("Erro ao fazer upload da foto", "error");
+    }
+  };
+
+  const handleDeletePhoto = async () => {
+    const token = auth?.user?.access_token;
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/user/me/avatar`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        showNotification("Foto removida com sucesso!", "save");
+        setProfileImage(prev => {
+          if (prev) URL.revokeObjectURL(prev);
+          return null;
+        });
+        setShowAvatarManager(false);
+      } else {
+        showNotification("Erro ao remover a foto no servidor.", "error");
+      }
+    } catch {
+      showNotification("Erro ao remover foto", "error");
+    }
+  };
+
+  const handleLogoutConfirm = async () => {
+    // sinaliza para a landing page exibir o aviso de "você saiu da sua conta"
+    sessionStorage.setItem(LOGOUT_FLAG_KEY, '1');
+    setShowLogoutModal(false);
+
+    const idTokenHint = auth?.user?.id_token;
+    try {
+      await auth.removeUser();
+      clearOidcStorage();
+      await auth.signoutRedirect(
+        idTokenHint ? { id_token_hint: idTokenHint } : undefined
+      );
+    } catch (_err) {
+      clearOidcStorage();
+      window.location.replace('/');
+    }
+  };
+
+  // Declarado depois de fetchAndSetAvatar e handleLogoutConfirm, que ele utiliza
   useEffect(() => {
     const buscarDadosDoUsuario = async () => {
       const token = auth?.user?.access_token;
@@ -124,103 +220,11 @@ export default function DashboardLayout() {
     };
 
     buscarDadosDoUsuario();
+    // Carga inicial a partir da API: o setState ocorre após o fetch, de forma assíncrona.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchInvites();
     
   }, [navigate]);
-
-
-  
-  const fetchAndSetAvatar = async (userId) => {
-    const token = auth?.user?.access_token;
-    if (!token) return;
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/user/${userId}/avatar`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        setProfileImage(prev => {
-          if (prev) URL.revokeObjectURL(prev);
-          return objectUrl;
-        });
-      } else {
-        setProfileImage(prev => {
-          if (prev) URL.revokeObjectURL(prev);
-          return null;
-        });
-        setShowAvatarManager(false);
-      }
-    } catch (e) {
-      setProfileImage(prev => {
-        if (prev) URL.revokeObjectURL(prev);
-        return null;
-      });
-      setShowAvatarManager(false);
-    }
-  };
-
-  const handleUploadBlob = async (blob) => {
-    const formData = new FormData();
-    formData.append('file', blob, 'avatar.jpg');
-    const token = auth?.user?.access_token;
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/user/me/avatar`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
-      if (response.ok) {
-        showNotification("Foto de perfil atualizada!", "save");
-        fetchAndSetAvatar(userData.id);
-        setShowAvatarManager(false);
-      } else {
-        showNotification("Erro ao atualizar foto", "error");
-      }
-    } catch (err) {
-      showNotification("Erro ao fazer upload da foto", "error");
-    }
-  };
-
-  const handleDeletePhoto = async () => {
-    const token = auth?.user?.access_token;
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/user/me/avatar`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        showNotification("Foto removida com sucesso!", "save");
-        setProfileImage(prev => {
-          if (prev) URL.revokeObjectURL(prev);
-          return null;
-        });
-        setShowAvatarManager(false);
-      } else {
-        showNotification("Erro ao remover a foto no servidor.", "error");
-      }
-    } catch (err) {
-      showNotification("Erro ao remover foto", "error");
-    }
-  };
-
-  const handleLogoutConfirm = async () => {
-    // sinaliza para a landing page exibir o aviso de "você saiu da sua conta"
-    sessionStorage.setItem(LOGOUT_FLAG_KEY, '1');
-    setShowLogoutModal(false);
-
-    const idTokenHint = auth?.user?.id_token;
-    try {
-      await auth.removeUser();
-      clearOidcStorage();
-      await auth.signoutRedirect(
-        idTokenHint ? { id_token_hint: idTokenHint } : undefined
-      );
-    } catch (_err) {
-      clearOidcStorage();
-      window.location.replace('/');
-    }
-  };
 
   const isActive = (path) => location.pathname === path;
 

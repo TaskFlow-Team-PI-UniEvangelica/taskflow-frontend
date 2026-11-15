@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { OrganizationContext } from '../../context/OrganizationContext';
+import { OrganizationContext } from '../../context/OrganizationContextObject';
 import { useAuth } from 'react-oidc-context';
 import { useLocation } from 'react-router-dom';
 import styles from './Tasks.module.css'; 

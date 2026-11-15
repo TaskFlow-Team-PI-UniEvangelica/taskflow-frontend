@@ -1,7 +1,6 @@
-import React, { createContext, useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useAuth } from 'react-oidc-context';
-
-export const OrganizationContext = createContext();
+import { OrganizationContext } from './OrganizationContextObject';
 
 function isSameOrg(a, b) {
   if (a === b) return true;
@@ -87,6 +86,8 @@ export const OrganizationProvider = ({ children }) => {
     const token = auth?.user?.access_token;
     if (!token) return;
 
+    // Sincronização com sistema externo (API + polling): o setState ocorre após o fetch, de forma assíncrona.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     syncOrganizationsSilently();
 
     // Carregar o perfil do usuário autenticado uma vez para verificação de autoria (ex: criadorId)
