@@ -16,6 +16,7 @@ import {
   POST_REGISTER_LOGIN_KEY,
   REGISTERED_EMAIL_KEY,
   clearOidcStorage,
+  clearTabSession,
   hasActiveStoredToken,
 } from './auth/keycloakConfig';
 import { signupRedirect } from './auth/signup';
@@ -118,8 +119,9 @@ function App() {
   useEffect(() => {
     if (!auth?.events) return undefined;
 
+    // Só a sessão desta aba: limpar todo o storage OIDC apagaria o "state" de logins em andamento em outras abas
     const handleSessionInvalidated = () => {
-      clearOidcStorage();
+      clearTabSession();
       auth.removeUser().catch(() => {});
       if (window.location.pathname !== '/' && !window.location.pathname.startsWith('/dashboard')) {
         window.history.replaceState({}, document.title, '/');
@@ -144,7 +146,7 @@ function App() {
     auth
       .signinSilent()
       .catch(() => {
-        clearOidcStorage();
+        clearTabSession();
         auth.removeUser().catch(() => {});
       })
       .finally(() => {
@@ -178,7 +180,8 @@ function App() {
       window.history.replaceState({}, document.title, window.location.pathname || '/');
     }
     if (!hasActiveStoredToken()) {
-      clearOidcStorage();
+      // Só a sessão desta aba (o "state" de logins em andamento em outras abas fica no localStorage)
+      clearTabSession();
     }
   }, [auth.error]);
 

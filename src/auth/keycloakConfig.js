@@ -37,6 +37,23 @@ export const removeLegacyLocalTokens = () => {
 };
 
 /**
+ * Remove apenas a sessão (tokens) desta aba, que fica no sessionStorage.
+ * Usado quando a sessão da aba é invalidada: não apaga o "state" de logins em andamento em
+ * outras abas, que o oidc-client-ts guarda no localStorage (compartilhado entre as abas).
+ */
+export const clearTabSession = () => {
+  try {
+    Object.keys(window.sessionStorage).forEach((key) => {
+      if (key.startsWith('oidc.user:')) {
+        window.sessionStorage.removeItem(key);
+      }
+    });
+  } catch {
+    // storage indisponível: nada a limpar
+  }
+};
+
+/**
  * Remove todos os artefatos de sessão/estado OIDC do localStorage e sessionStorage
  * para evitar loops de token inválido (HTTP 400) ou dessincronização com o Keycloak.
  */
