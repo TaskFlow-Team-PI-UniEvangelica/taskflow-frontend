@@ -21,14 +21,15 @@ RUN npm run build
 
 # Nginx unprivileged (executa sem permissão de root na porta 8080)
 FROM nginxinc/nginx-unprivileged:1.31-alpine
-ARG VITE_API_URL
-ARG VITE_KEYCLOAK_AUTHORITY
-
-COPY nginx/default.conf.template /tmp/default.conf.template
 
 USER root
 # Aplica as correções de segurança publicadas no Alpine depois da imagem base (Trivy, ALT-32)
 RUN apk upgrade --no-cache
+
+ARG VITE_API_URL
+ARG VITE_KEYCLOAK_AUTHORITY
+
+COPY nginx/default.conf.template /tmp/default.conf.template
 
 # Preenche as origens da API e Keycloak na CSP de forma dinâmica
 RUN API_ORIGIN="$(echo "$VITE_API_URL" | sed -E 's#^(https?://[^/]+).*#\1#')" \

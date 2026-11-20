@@ -15,8 +15,9 @@ server {
     add_header Permissions-Policy "camera=(), microphone=(), geolocation=()" always;
     
     # Content-Security-Policy efetiva: scripts só do próprio domínio (o build do Vite não gera script inline).
-    # style-src mantém 'unsafe-inline' porque o React e o react-toastify aplicam estilos inline.
-    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' ${API_ORIGIN} ${AUTH_ORIGIN}; frame-ancestors 'none'; base-uri 'self'; object-src 'none'" always;
+    # style-src mantém 'unsafe-inline' porque o React e o react-toastify aplicam estilos inline;
+    # fonts.googleapis.com / fonts.gstatic.com cobrem a fonte Inter carregada em index.css.
+    add_header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob:; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' ${API_ORIGIN} ${AUTH_ORIGIN}; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'" always;
 
     # Assets estáticos empacotados com hash pelo Vite recebem cache longo
     location /assets/ {
