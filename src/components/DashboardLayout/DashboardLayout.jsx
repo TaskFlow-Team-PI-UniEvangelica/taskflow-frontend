@@ -82,7 +82,8 @@ export default function DashboardLayout() {
           await refreshOrganizations();
         }
       } else {
-        showNotification('Erro ao processar convite', 'error');
+        const errData = await res.json().catch(() => null);
+        showNotification(errData?.detail || errData?.message || 'Erro ao processar convite', 'error');
       }
     } catch {
       showNotification('Erro interno', 'error');
@@ -141,7 +142,8 @@ export default function DashboardLayout() {
         fetchAndSetAvatar(userData.id);
         setShowAvatarManager(false);
       } else {
-        showNotification("Erro ao atualizar foto", "error");
+        const errData = await response.json().catch(() => null);
+        showNotification(errData?.detail || errData?.message || "Erro ao atualizar foto", "error");
       }
     } catch {
       showNotification("Erro ao fazer upload da foto", "error");
@@ -235,10 +237,18 @@ export default function DashboardLayout() {
         <div className={styles.toastContainer}>
           <div className={styles.toastCard}>
             <div className={styles.toastIcon}>
-              {toast.type === 'save' ? <FaSave /> : <FaKey />}
+              {toast.type === 'error' ? <FaTimes /> : toast.type === 'save' || toast.type === 'success' ? <FaSave /> : <FaKey />}
             </div>
             <div className={styles.toastText}>
-              <strong>{toast.type === 'save' ? 'Sistema' : 'Segurança'}</strong>
+              <strong>
+                {toast.type === 'error'
+                  ? 'Erro'
+                  : toast.type === 'success'
+                    ? 'Sucesso'
+                    : toast.type === 'save'
+                      ? 'Sistema'
+                      : 'Segurança'}
+              </strong>
               <span>{toast.message}</span>
             </div>
           </div>

@@ -75,7 +75,8 @@ export default function Equipe() {
         setIsAddingMember(false);
         toast.success('Convite enviado com sucesso!');
       } else {
-        toast.error('Erro ao convidar membro.');
+        const errData = await response.json().catch(() => null);
+        toast.error(errData?.detail || errData?.message || 'Erro ao convidar membro.');
       }
     } catch {
       toast.error('Erro de rede.');
@@ -124,7 +125,8 @@ export default function Equipe() {
               fetchEquipe();
             }
           } else {
-            toast.error("Você não tem permissão para realizar esta ação.");
+            const errData = await response.json().catch(() => null);
+            toast.error(errData?.detail || errData?.message || "Você não tem permissão para realizar esta ação.");
           }
         } catch {
           toast.error("Erro de rede.");
@@ -153,7 +155,8 @@ export default function Equipe() {
             fetchEquipe();
             refreshOrganizations();
           } else {
-            toast.error("Erro ao transferir a posse.");
+            const errData = await response.json().catch(() => null);
+            toast.error(errData?.detail || errData?.message || "Erro ao transferir a posse.");
           }
         } catch {
           toast.error("Erro de rede.");
@@ -177,7 +180,8 @@ export default function Equipe() {
         toast.success('Papel atualizado com sucesso!');
         fetchEquipe();
       } else {
-        toast.error('Erro ao atualizar papel do usuário.');
+        const errData = await response.json().catch(() => null);
+        toast.error(errData?.detail || errData?.message || 'Erro ao atualizar papel do usuário.');
       }
     } catch {
       toast.error('Erro de rede.');

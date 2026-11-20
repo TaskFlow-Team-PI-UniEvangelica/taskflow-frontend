@@ -13,6 +13,8 @@ export const AVATAR_MAX_SIZE = 512
 const AVATAR_JPEG_QUALITY = 0.9
 
 export async function getCroppedImg(imageSrc, pixelCrop) {
+  if (!pixelCrop || pixelCrop.width <= 0 || pixelCrop.height <= 0) return null
+
   const image = await createImage(imageSrc)
   const canvas = document.createElement('canvas')
   const ctx = canvas.getContext('2d')
@@ -23,6 +25,10 @@ export async function getCroppedImg(imageSrc, pixelCrop) {
   const scale = Math.min(1, AVATAR_MAX_SIZE / Math.max(pixelCrop.width, pixelCrop.height))
   canvas.width = Math.max(1, Math.round(pixelCrop.width * scale))
   canvas.height = Math.max(1, Math.round(pixelCrop.height * scale))
+
+  // Fundo branco para evitar transparência convertida em fundo preto ao exportar JPEG
+  ctx.fillStyle = '#ffffff'
+  ctx.fillRect(0, 0, canvas.width, canvas.height)
 
   ctx.imageSmoothingQuality = 'high'
   ctx.drawImage(

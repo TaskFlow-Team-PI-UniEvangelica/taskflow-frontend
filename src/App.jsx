@@ -112,39 +112,55 @@ function App() {
           window.location.replace('/');
         });
     }
-  }, [auth.isLoading, auth, startSignupParam, startLoginParam]);
+  }, [auth.isLoading, auth, startSignupParam, startLoginParam, isVerifiedParam]);
 
   // 2. Auto-recuperação: a sessão só é descartada quando a renovação falha ou a sessão é encerrada
   //    no Keycloak. A expiração do access token é normal (ele dura minutos) e não encerra a sessão.
+  const authEvents = auth?.events;
+  const removeUser = auth?.removeUser;
   useEffect(() => {
-    if (!auth?.events) return undefined;
+    if (!authEvents) return undefined;
 
     // Só a sessão desta aba: limpar todo o storage OIDC apagaria o "state" de logins em andamento em outras abas
     const handleSessionInvalidated = () => {
       clearTabSession();
-      auth.removeUser().catch(() => {});
+      removeUser?.().catch(() => {});
       if (window.location.pathname !== '/' && !window.location.pathname.startsWith('/dashboard')) {
         window.history.replaceState({}, document.title, '/');
       }
     };
 
-    const unsubSilentError = auth.events.addSilentRenewError(handleSessionInvalidated);
-    const unsubSignedOut = auth.events.addUserSignedOut(handleSessionInvalidated);
+    const unsubSilentError = authEvents.addSilentRenewError(handleSessionInvalidated);
+    const unsubSignedOut = authEvents.addUserSignedOut(handleSessionInvalidated);
 
     return () => {
       if (typeof unsubSilentError === 'function') unsubSilentError();
       if (typeof unsubSignedOut === 'function') unsubSignedOut();
     };
-  }, [auth?.events, auth]);
+  }, [authEvents, removeUser]);
 
-  // 2.1 Renova a sessão quando o app abre com o access token vencido (uma tentativa por vez).
-  //     Se o refresh token também não valer mais, a falha aparece no aviso de sessão expirada.
+  // 2.1 Renova a sessão quando o app abre com o access token vencido (uma tentativa por token).
+  //     Se o refresh token também não valer mais, descarta a sessão desta aba sem travar o spinner.
   const renewingRef = useRef(false);
+  const renewalAttemptedForTokenRef = useRef(null);
   useEffect(() => {
+    if (!auth.user?.expired) {
+      renewalAttemptedForTokenRef.current = null;
+      return;
+    }
     if (!needsSessionRenewal || renewingRef.current) return;
+    const tokenKey = auth.user?.access_token || auth.user?.refresh_token || 'expired';
+    if (renewalAttemptedForTokenRef.current === tokenKey) return;
+    renewalAttemptedForTokenRef.current = tokenKey;
     renewingRef.current = true;
     auth
       .signinSilent()
+      .then((renewedUser) => {
+        if (!renewedUser || renewedUser.expired) {
+          clearTabSession();
+          auth.removeUser().catch(() => {});
+        }
+      })
       .catch(() => {
         clearTabSession();
         auth.removeUser().catch(() => {});

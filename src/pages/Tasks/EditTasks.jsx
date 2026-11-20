@@ -35,16 +35,16 @@ export default function EditTasks() {
   // Identificação apenas por ID, como no backend (nomes podem se repetir).
   const isOwnTask = Boolean(
     selectedTask &&
-    currentUser &&
+    currentUser?.id != null &&
     selectedTask.criadorId != null &&
     Number(selectedTask.criadorId) === Number(currentUser.id)
   );
 
   const isAssignedTask = Boolean(
     selectedTask &&
-    currentUser &&
+    currentUser?.id != null &&
     Array.isArray(selectedTask.idsResponsaveis) &&
-    selectedTask.idsResponsaveis.some(id => Number(id) === Number(currentUser.id))
+    selectedTask.idsResponsaveis.some(id => id != null && Number(id) === Number(currentUser.id))
   );
 
   const isOwnOrAssignedTask = isOwnTask || isAssignedTask;

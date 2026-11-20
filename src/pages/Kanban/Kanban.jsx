@@ -22,14 +22,14 @@ export default function Kanban() {
 
     // Identificação apenas por ID, como no backend (nomes podem se repetir).
     const isCreator = Boolean(
-      currentUser &&
+      currentUser?.id != null &&
       task.criadorId != null &&
       Number(task.criadorId) === Number(currentUser.id)
     );
     const isAssignee = Boolean(
-      currentUser &&
+      currentUser?.id != null &&
       Array.isArray(task.idsResponsaveis) &&
-      task.idsResponsaveis.some(id => Number(id) === Number(currentUser.id))
+      task.idsResponsaveis.some(id => id != null && Number(id) === Number(currentUser.id))
     );
 
     const canMove =
