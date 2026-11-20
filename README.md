@@ -1,10 +1,10 @@
 ## Taskflow - Frontend
-Aplicação web desenvolvida para ser a interface visual do sistema Taskflow, permitindo o gerenciamento interativo de usuários, equipes e tarefas (via Kanban). Construída com **React** e **Vite**, a aplicação é totalmente containerizada com **Docker**, garantindo alta estabilidade e separação clara entre os ambientes de desenvolvimento e produção (utilizando Nginx).
-Este repositório atua em conjunto com a Taskflow API e faz parte da execução do Projeto Integrativo e do Projeto de Conclusão de Curso da Universidade Evangélica de Anápolis.
+Aplicação web desenvolvida para ser a interface visual do sistema Taskflow, permitindo o gerenciamento interativo de organizações, usuários, equipes e tarefas (via Kanban). Construída com **React 19** e **Vite 7** sobre **Node 26 LTS**, a aplicação é totalmente containerizada com **Docker**, garantindo alta estabilidade e separação clara entre os ambientes de desenvolvimento e produção (utilizando **Nginx Unprivileged 1.31-alpine**).
+Este repositório atua em conjunto com a Taskflow API e faz parte da execução do Projeto Integrativo e do Projeto de Conclusão de Curso da Universidade Evangélica de Goiás (UniEVANGÉLICA).
 
-- URL de deploy de testes, cole no navegador para acessar a aplicação sem executar localmente:
+- **URL oficial de produção:**
     ```
-    http://124.198.128.120/
+    https://taskflow.party
     ```
 
 ## Configuração e Variáveis de Ambiente
@@ -12,65 +12,74 @@ Antes de iniciar o frontend, faça uma cópia do arquivo `.env.example` renomean
 
 ## Dependências e Tecnologias Usadas
 
+* **Runtime / Engine:** Node.js **26 LTS** (`engines.node >= 26`)
 * **Linguagem:** JavaScript (JSX)
-* **Biblioteca Principal:** React
-* **Build e Empacotador:** Vite
-* **Roteamento:** React Router DOM
-* **Infraestrutura e Deploy:** Docker, Docker Compose e Nginx
-* **Automação de Comandos:** GNU Make (Makefile)
+* **Biblioteca Principal:** React 19
+* **Build e Empacotador:** Vite 7
+* **Roteamento:** React Router DOM 7
+* **Autenticação OIDC:** `react-oidc-context` + `oidc-client-ts` (PKCE, Keycloak **26**)
+* **Infraestrutura e Deploy:** Docker, Docker Compose, Nginx Unprivileged **1.31-alpine** (porta `8080`, CSP efetiva) e GitHub Actions + Trivy
+* **Qualidade Estática:** ESLint (`eslint.config.js`)
+* **Automação de Comandos:** GNU Make (`Makefile`)
 * **Gerenciador de Pacotes:** NPM
 
 ## Estrutura de pastas
 
 ```
 taskflow-frontend/
-├── public/                  # Arquivos estáticos e globais (imagens de fundo, ícones padrão).
-├── src/                     # Código-fonte principal da aplicação React.
-│   ├── assets/              # Recursos estáticos importados diretamente no código (ex: react.svg).
-│   ├── auth/                # Configurações do cliente OIDC / Keycloak (PKCE, limpeza de storage e flags).
-│   ├── components/          # Componentes visuais e de layout reutilizáveis.
-│   │   ├── DashboardLayout/ # Estrutura visual base do sistema logado com sidebar e navbar.
-│   │   ├── RegisterForm/    # Formulário e regras visuais de cadastro.
-│   │   ├── TaskHistory/     # Drawer e linha do tempo de histórico de tarefas.
-│   │   └── UI/              # Componentes primitivos genéricos e isolados (Button, Input, PasswordInput).
-│   ├── context/             # Contextos globais da aplicação (ThemeContext, OrganizationContext).
-│   ├── pages/               # Telas roteáveis completas da aplicação.
-│   │   ├── Dashboard/       # Visão geral do usuário logado e métricas da organização.
-│   │   ├── Kanban/          # Quadro interativo de gerenciamento de tarefas por colunas.
-│   │   ├── Landing/         # Página inicial institucional pública com login/registro.
-│   │   ├── Organizations/   # Gestão de organizações, governança de tarefas e convites.
-│   │   ├── Tasks/           # Listagem, criação e edição de tarefas.
-│   │   └── Teams/           # Criação e gestão de equipes e membros.
-│   ├── App.jsx              # Ponto central de roteamento protegido e tratamento de callbacks OIDC.
-│   ├── index.css            # Estilos globais e variáveis de tema CSS.
-│   └── main.jsx             # Ponto de entrada com provedor AuthProvider (Keycloak OIDC).
-├── .env.example             # Modelo de variáveis de ambiente para desenvolvimento e produção.
-├── .gitignore               # Regras de exclusão de arquivos para o repositório.
-├── docker-compose.yml       # Orquestração do ambiente de Produção (Nginx).
-├── docker-compose-dev.yml   # Orquestração do ambiente de Desenvolvimento (Vite com Hot Reload).
-├── Dockerfile               # Imagem de Produção (Build Node + Deploy Nginx).
-├── Dockerfile-dev           # Imagem de Desenvolvimento (Node + Vite).
-├── Makefile                 # Atalhos para rodar os comandos do Docker.
-├── package.json             # Gerenciamento de dependências e scripts de execução.
-└── vite.config.js           # Configurações do empacotador Vite.
+├── .github/workflows/ci-cd.yml       # Pipeline (lint + build + imagem ARM64 + Trivy + deploy)
+├── nginx/
+│   └── default.conf.template         # Configuração Nginx 1.31 com CSP efetiva e cache SPA
+├── public/                           # Arquivos estáticos e globais (favicon, imagens)
+├── src/                              # Código-fonte principal da aplicação React
+│   ├── auth/                         # Cliente OIDC / Keycloak (sessionStorage, PKCE, clearTabSession)
+│   ├── components/                   # Componentes visuais e de layout reutilizáveis
+│   │   ├── DashboardLayout/          # Layout base (sidebar rolável, avatar 512x512 JPEG, convites)
+│   │   ├── ErrorBoundary/            # Fallback de erro em dois níveis (global e por rota)
+│   │   ├── SessionErrorModal/        # Modal acionável quando ocorre erro de autenticação (auth.error)
+│   │   └── TaskHistory/              # Timeline de auditoria (TaskTimeline) e modal de tarefas excluídas
+│   ├── context/                      # Contextos globais (ThemeContext, OrganizationContext com hot reload 4s)
+│   ├── pages/                        # Telas roteáveis completas da aplicação
+│   │   ├── Dashboard/                # Visão geral e métricas da organização ativa
+│   │   ├── Kanban/                   # Quadro Kanban interativo com drag-and-drop e identificação por ID
+│   │   ├── Landing/                  # Landing page pública com CTAs de login/cadastro
+│   │   ├── Organizations/            # Gestão de organizações e 4 seções de governança RBAC
+│   │   ├── Tasks/                    # Criação e edição de tarefas (EditTasks)
+│   │   └── Teams/                    # Gestão de equipe, convites por e-mail e hierarquia de papéis
+│   ├── App.jsx                       # Roteamento protegido, renovação de sessão e tratamento de callbacks OIDC
+│   ├── index.css                     # Estilos globais e variáveis de tema Light/Dark
+│   └── main.jsx                      # Ponto de entrada com AuthProvider e ErrorBoundary global
+├── .dockerignore                     # Exclusões para build limpo da imagem
+├── .env.example                      # Modelo de variáveis de ambiente para dev e prod
+├── .trivyignore                      # Exceções justificadas para scan Trivy
+├── docker-compose.yml                # Orquestração de Produção (Nginx na porta 80 -> 8080)
+├── docker-compose-dev.yml            # Orquestração de Desenvolvimento (Vite com Hot Reload)
+├── Dockerfile                        # Multi-stage (Node 26 -> Nginx Unprivileged 1.31-alpine)
+├── Dockerfile-dev                    # Imagem de Desenvolvimento (Node 26 + Vite)
+├── eslint.config.js                  # Regras de lint do projeto
+├── Makefile                          # Atalhos Docker
+├── package.json                      # Dependências e scripts NPM
+└── vite.config.js                    # Configurações do Vite
 ```
 
 
-## Segurança e Autenticação
-O TaskFlow Frontend utiliza o padrão **OIDC (OpenID Connect)** integrado ao Keycloak, adotando as seguintes diretrizes de segurança e arquitetura:
-- **Fluxo Authorization Code com PKCE:** Implementado via `react-oidc-context` e `oidc-client-ts`, garantindo troca criptográfica de tokens no navegador sem exposição de credenciais ou *client secrets*.
-- **Persistência de Sessão Segura:** Utiliza `WebStorageStateStore` com `localStorage` para manter a sessão do usuário ativa durante atualizações de página e navegações, com expiração automática baseada no tempo de vida dos tokens emitidos pelo Keycloak.
-- **Fluxo de Cadastro com Confirmação Manual de Login:** Quando um novo usuário se cadastra, o sistema impede deliberadamente o login automático (`REGISTER_FLOW_KEY`), exigindo confirmação de e-mail e autenticação explícita por credenciais (`prompt: 'login'`), garantindo conformidade e proteção contra acessos indevidos.
-- **Tratamento de Confirmação de E-mail (`Verify Email`):** Ao clicar no link de confirmação recebido por e-mail (Mailpit em desenvolvimento), o Keycloak exibe tela customizada com confirmação visual e botão dinâmico de retorno ao frontend. A aplicação captura o parâmetro de sucesso (`verified=1`) e redireciona para a tela de login do Keycloak com o campo de e-mail pré-preenchido e mensagem de boas-vindas.
-- **Rotas Protegidas:** O componente raiz valida o estado de autenticação antes de renderizar páginas privadas (`/dashboard`, `/kanban`, `/tasks`, `/teams`, `/organizations`). Usuários não autenticados são mantidos na Landing Page pública.
+## Segurança, Autenticação e Resiliência
+O TaskFlow Frontend utiliza **OIDC (OpenID Connect)** integrado ao **Keycloak 26**, adotando as seguintes diretrizes:
+- **Fluxo Authorization Code com PKCE:** Implementado via `react-oidc-context` e `oidc-client-ts`, garantindo troca criptográfica de tokens no navegador sem exposição de *client secrets*.
+- **Tokens no `sessionStorage` e Renovação Silenciosa:** A sessão da aba fica isolada no `sessionStorage` (`clearTabSession()` remove apenas os tokens da aba ao invalidar, preservando o `state` de logins em andamento em outras abas; tokens legados no `localStorage` são limpos na inicialização). Novas abas autenticam via SSO sem pedir senha, e acessos com access token vencido tentam renovação silenciosa via refresh token antes de encerrar a sessão.
+- **Fluxo de Cadastro com Confirmação Manual de Login:** Ao concluir cadastro ou verificação de e-mail (`verified=1`), a sessão temporária é encerrada e o usuário é direcionado ao login explícito (`prompt: 'login'`), evitando auto-login indevido.
+- **Content Security Policy (CSP) Efetiva e Headers Nginx:** O servidor Nginx Unprivileged (`1.31-alpine`, UID `101`, porta `8080`) envia cabeçalho efetivo `Content-Security-Policy` (`script-src 'self'`, origens de API/Keycloak injetadas em build, `frame-ancestors 'none'`, `form-action 'self'`, `base-uri 'self'`, `object-src 'none'`), além de `X-Frame-Options: DENY` e `X-Content-Type-Options: nosniff`.
+- **Resiliência de Interface (`ErrorBoundary` + `SessionErrorModal`):** `ErrorBoundary` em dois níveis (raiz e `<Outlet />`, resetando automaticamente ao mudar de rota) evita tela branca em falhas inesperadas de renderização, e `SessionErrorModal` oferece recuperação acionável quando há `auth.error`.
+- **Upload de Avatar Otimizado:** O recorte no cliente redimensiona a imagem para no máximo **512×512 JPEG** (qualidade `0.9` com fundo branco para PNGs transparentes), mantendo conformidade com o limite de 2 MB da API.
+- **Rotas Protegidas:** Usuários sem token ativo que acessam rotas internas (`/dashboard`, `/kanban`, `/tasks`, `/edit-tasks`, `/teams`, `/organizations`) são redirecionados para `/`.
 
 ## Requisitos para rodar
 - Docker e Docker Compose V2
-- Make (Para executar os atalhos apenas Linux)
-- NodeJS (Caso queira executar manualmente)
+- Make (para executar os atalhos no Linux)
+- NodeJS **26 LTS** (caso queira executar manualmente fora do Docker)
 
 ## Configuração do `.env` (Desenvolvimento e Produção)
-Crie um arquivo chamado `.env` na raiz do projeto. Ele será lido pelo Vite no ambiente de Desenvolvimento e empacotado no Build pelo Docker para o ambiente de Produção.
+Crie um arquivo chamado `.env` na raiz do projeto. Ele será lido pelo Vite em Desenvolvimento e passado como `build-arg` pelo Docker em Produção.
 
 ### Para Desenvolvimento Local (`make run-dev`)
 Use as URLs locais. O Vite usará a porta `5173`.
@@ -85,7 +94,7 @@ VITE_REDIRECT_URI=http://localhost:5173
 ```
 
 ### Para Produção (`make run`)
-No servidor, é usado domínios oficiais que apontam para o Cloudflare Tunnels.
+Em produção, são utilizados os domínios oficiais protegidos pelo Cloudflare Tunnel.
 ```env
 # URL da sua API Pública (Com HTTPS)
 VITE_API_URL=https://api.taskflow.party
@@ -94,37 +103,35 @@ VITE_API_URL=https://api.taskflow.party
 VITE_KEYCLOAK_AUTHORITY=https://auth.taskflow.party/realms/taskflow-realm
 VITE_KEYCLOAK_CLIENT_ID=taskflow-frontend
 
-# URL de redirecionamento (A URL oficial do Front-end)
+# URL de redirecionamento (URL oficial do Front-end)
 VITE_REDIRECT_URI=https://taskflow.party
 ```
 
 ## Passos para rodar via Linux (Docker + Makefile)
 
 1. **Clone o repositório:**
-Clone o repositório do frontend seja usando terminal ou baixando o arquivo ZIP.
+Clone o repositório do frontend usando terminal ou baixando o arquivo ZIP.
 
 2. **Acesse a pasta do projeto pelo terminal:**
    ```bash
    cd taskflow-frontend
    ```
 
-3. **Tenha seu .env configurado:**
-Siga as instruções do tópico anterior para criar o .env da aplicação.
+3. **Tenha seu `.env` configurado:**
+Siga as instruções do tópico anterior para criar o `.env` da aplicação.
 
-4. **Rode o Backend SpringBoot:**
-Instruções de execução do back esta no README do repositório da API.
+4. **Rode o Backend Spring Boot:**
+Instruções de execução do backend estão no README do repositório da API.
 
-5. **Escolha o ambiente que deseja subir a aplicação:**
-Escolha o ambiente que deseja subir a aplicação.
+5. **Escolha o ambiente que deseja subir:**
+- Garanta que o Docker tenha permissão de execução no seu sistema.
 
-- Garanta que o Docker tenha acesso administrador ao seu sistema.
-
-### Ambiente de desenvolvimento.
+### Ambiente de desenvolvimento
 - Rodar em ambiente de desenvolvimento usando Vite:
    ```
    make run-dev
    ```
-   Acessar a url local: ``` http://localhost:5173 ```
+   Acesse no navegador: `http://localhost:5173`
 - Para desligar os containers:
    ```
    make down
@@ -135,23 +142,23 @@ Escolha o ambiente que deseja subir a aplicação.
    ```
 - Acessar os logs do container de desenvolvimento:
    ```
-	make logs-dev
+   make logs-dev
    ```
-- Acessar container de desenvolvimento para executar comandos linux:
+- Acessar container de desenvolvimento para executar comandos Linux:
    ```
-	make terminal-dev
+   make terminal-dev
    ```
-   Para sair digite ``` exit ``` no terminal.
+   Para sair digite `exit` no terminal.
 
-### Ambiente de produção.
-- Rodar em ambiente de produção usando Nginx:
+### Ambiente de produção (build local)
+- Rodar em ambiente de produção usando Nginx (mapeado para porta `80 -> 8080`):
    ```
    make run
    ```
-   Acessar a url local: ``` http://localhost/ ```
+   Acesse no navegador: `http://localhost/`
 - Para desligar container de produção:
    ```
-	make down
+   make down
    ```
 - Derruba o container de produção e apaga as imagens:
    ```
@@ -159,45 +166,44 @@ Escolha o ambiente que deseja subir a aplicação.
    ```
 - Acessar os logs do container de produção:
    ```
-	make logs
+   make logs
    ```
-- Acessar container de produção para executar comandos linux:
+- Acessar container de produção para executar comandos Linux (a imagem Alpine usa `sh`):
    ```
-	make terminal
+   make terminal
    ```
-   Para sair digite ``` exit ``` no terminal.
+   Para sair digite `exit` no terminal.
 
-6. **Como acessar o Dashboard:** Faça o login com um usuário válido, caso não tenha crie um novo usuário.
+6. **Como acessar o Dashboard:** Faça o login com um usuário válido; caso não tenha conta, registre um novo usuário e confirme o e-mail.
 
 
 ## Passos para rodar via Windows (Docker)
 
 1. **Clone o repositório:**
-Clone o repositório do frontend seja usando terminal ou baixando o arquivo ZIP.
+Clone o repositório do frontend usando terminal ou baixando o arquivo ZIP.
 
 2. **Acesse a pasta do projeto pelo terminal:**
    ```bash
    cd taskflow-frontend
    ```
 
-3. **Tenha seu .env configurado:**
-Siga as instruções do tópico anterior para criar o .env da aplicação.
+3. **Tenha seu `.env` configurado:**
+Siga as instruções do tópico anterior para criar o `.env` da aplicação.
 
-4. **Rode o Backend SpringBoot:**
-Instruções de execução do back esta no README do repositório da API.
+4. **Rode o Backend Spring Boot:**
+Instruções de execução do backend estão no README do repositório da API.
 
-5. **Escolha o ambiente que deseja subir a aplicação:**
-Escolha o ambiente que deseja subir a aplicação.
+5. **Escolha o ambiente que deseja subir:**
 
-### Ambiente de desenvolvimento.
+### Ambiente de desenvolvimento
 - Rodar em ambiente de desenvolvimento usando Vite:
    ```
    docker compose -f docker-compose-dev.yml up --build
    ```
-   Acessar a url local: ``` http://localhost:5173 ```
+   Acesse no navegador: `http://localhost:5173`
 - Para desligar container de desenvolvimento:
    ```
-	docker compose -f docker-compose-dev.yml down
+   docker compose -f docker-compose-dev.yml down
    ```
 - Derruba o container de desenvolvimento e apaga as imagens:
    ```
@@ -205,23 +211,23 @@ Escolha o ambiente que deseja subir a aplicação.
    ```
 - Acessar os logs do container de desenvolvimento:
    ```
-	docker compose -f docker-compose-dev.yml logs -f
+   docker compose -f docker-compose-dev.yml logs -f
    ```
-- Acessar container de desenvolvimento para executar comandos linux:
+- Acessar container de desenvolvimento:
    ```
-	docker exec -it taskflow_frontend_dev bash
+   docker exec -it taskflow_frontend_dev bash
    ```
-   Para sair digite ``` exit ``` no terminal.
+   Para sair digite `exit` no terminal.
 
-### Ambiente de produção.
+### Ambiente de produção
 - Rodar em ambiente de produção usando Nginx:
    ```
    docker compose up --build
    ```
-   Acessar a url local: ``` http://localhost/ ```
+   Acesse no navegador: `http://localhost/`
 - Para desligar container de produção:
    ```
-	docker compose down
+   docker compose down
    ```
 - Derruba o container de produção e apaga as imagens:
    ```
@@ -229,36 +235,31 @@ Escolha o ambiente que deseja subir a aplicação.
    ```
 - Acessar os logs do container de produção:
    ```
-	docker compose logs -f
+   docker compose logs -f
    ```
-- Acessar container de produção para executar comandos linux:
+- Acessar container de produção (imagem Alpine possui `sh`, não `bash`):
    ```
-	docker exec -it taskflow_frontend bash
+   docker exec -it taskflow_frontend sh
    ```
-   Para sair digite ``` exit ``` no terminal.
+   Para sair digite `exit` no terminal.
 
-6. **Como acessar o Dashboard:** Faça o login com um usuário válido, caso não tenha crie um novo usuário.
+6. **Como acessar o Dashboard:** Faça o login com um usuário válido; caso não tenha conta, registre um novo usuário e confirme o e-mail.
 
-## Passos para rodar manualmente (Node)
-- Necessário ter o Node instalado no computador.
-
+## Passos para rodar manualmente (Node 26 LTS)
+- Necessário ter o **Node.js 26 LTS** instalado no computador.
 - Clonar o projeto e entrar no terminal na raiz do projeto.
-
-- Rode o Backend SpringBoot: Instruções de execução do back esta no README do repositório do Backend.
-
+- Rode o Backend Spring Boot (instruções no README do repositório da API).
 - Instale as dependências com:
-```
-   npm install
-   ```
-- Faça o build com:
-```
-   npm run build
-   ```
+  ```bash
+  npm ci
+  ```
+- Valide lint e build de produção com:
+  ```bash
+  npm run lint
+  npm run build
+  ```
 - Rode o servidor local com:
-```
-   npm run dev
-   ```
-
-- Acesse a url do projeto pelo vite localmente: ``` http://localhost:5173/ ```
-
-- Para acessar o Dashboard faça login com um usuário válido, caso não tenha crie um novo usuário.
+  ```bash
+  npm run dev
+  ```
+- Acesse a URL local pelo Vite: `http://localhost:5173/`
