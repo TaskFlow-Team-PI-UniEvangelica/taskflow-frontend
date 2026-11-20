@@ -1,7 +1,7 @@
 import { toast } from 'react-toastify';
 import React, { useContext, useState } from 'react';
 import { useAuth } from 'react-oidc-context';
-import { OrganizationContext } from '../../context/OrganizationContext';
+import { OrganizationContext } from '../../context/OrganizationContextObject';
 import styles from './Organizations.module.css';
 import { FaBuilding, FaPlus, FaCog, FaTimes } from 'react-icons/fa';
 

@@ -31,7 +31,7 @@ logs-dev:
 
 # acessar o terminal no conteiner de prod
 terminal:
-	docker exec -it taskflow_frontend bash
+	docker exec -it taskflow_frontend sh
 
 # acessar o terminal no conteiner de dev
 terminal-dev:

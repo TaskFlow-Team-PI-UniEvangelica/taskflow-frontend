@@ -11,4 +11,4 @@ services:
       dockerfile: Dockerfile
     container_name: taskflow_frontend
     ports:
-      - "80:80"
+      - "80:8080"

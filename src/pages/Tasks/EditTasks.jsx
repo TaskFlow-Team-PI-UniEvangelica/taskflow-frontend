@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { OrganizationContext } from '../../context/OrganizationContext';
+import { OrganizationContext } from '../../context/OrganizationContextObject';
 import { useAuth } from 'react-oidc-context';
 import { useLocation } from 'react-router-dom';
 import styles from './Tasks.module.css'; 
@@ -32,21 +32,19 @@ export default function EditTasks() {
 
   const selectedTask = tasks.find(t => t.id.toString() === selectedTaskId) || null;
 
+  // Identificação apenas por ID, como no backend (nomes podem se repetir).
   const isOwnTask = Boolean(
     selectedTask &&
-    currentUser &&
-    ((selectedTask.criadorId != null && Number(selectedTask.criadorId) === Number(currentUser.id)) ||
-     (selectedTask.nomeCriador && currentUser.nome && selectedTask.nomeCriador === currentUser.nome))
+    currentUser?.id != null &&
+    selectedTask.criadorId != null &&
+    Number(selectedTask.criadorId) === Number(currentUser.id)
   );
 
   const isAssignedTask = Boolean(
     selectedTask &&
-    currentUser &&
-    ((Array.isArray(selectedTask.idsResponsaveis) &&
-      selectedTask.idsResponsaveis.some(id => Number(id) === Number(currentUser.id))) ||
-     (Array.isArray(selectedTask.nomesResponsaveis) &&
-      currentUser.nome &&
-      selectedTask.nomesResponsaveis.includes(currentUser.nome)))
+    currentUser?.id != null &&
+    Array.isArray(selectedTask.idsResponsaveis) &&
+    selectedTask.idsResponsaveis.some(id => id != null && Number(id) === Number(currentUser.id))
   );
 
   const isOwnOrAssignedTask = isOwnTask || isAssignedTask;
@@ -152,11 +150,7 @@ export default function EditTasks() {
               ? `${taskToEdit.prazo[0]}-${String(taskToEdit.prazo[1]).padStart(2, '0')}-${String(taskToEdit.prazo[2]).padStart(2, '0')}`
               : String(taskToEdit.prazo).split('T')[0])
           : '';
-        const idsAtuais = Array.isArray(taskToEdit.idsResponsaveis) && taskToEdit.idsResponsaveis.length > 0
-          ? taskToEdit.idsResponsaveis
-          : teamMembers
-              .filter(m => Array.isArray(taskToEdit.nomesResponsaveis) && taskToEdit.nomesResponsaveis.includes(m.nome))
-              .map(m => m.id);
+        const idsAtuais = Array.isArray(taskToEdit.idsResponsaveis) ? taskToEdit.idsResponsaveis : [];
         setTaskData({
           titulo: taskToEdit.titulo,
           descricao: taskToEdit.descricao || '',

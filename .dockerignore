@@ -1,0 +1,13 @@
+.git
+.github
+.gemini
+.claude
+.idea
+.vscode
+.env
+.env.*
+!.env.example
+node_modules
+dist
+dist-ssr
+*.log

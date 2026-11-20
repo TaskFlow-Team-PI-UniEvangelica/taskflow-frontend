@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { FaBars, FaTimes, FaMoon, FaSun } from 'react-icons/fa';
 import { useTheme } from '../../../context/ThemeContext';
 import styles from '../LandingPage.module.css';
+import { scrollToSection } from '../scrollToSection';
 
 const NAV_LINKS = [
   { id: 'recursos', label: 'Recursos' },
@@ -9,12 +10,6 @@ const NAV_LINKS = [
   { id: 'permissoes', label: 'Permissões' },
 ];
 
-export const scrollToSection = (id) => {
-  const el = document.getElementById(id);
-  if (!el) return;
-  const reduceMotion = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-  el.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
-};
 
 export default function LandingNavbar({ onLogin, onSignup }) {
   const { theme, toggleTheme } = useTheme();

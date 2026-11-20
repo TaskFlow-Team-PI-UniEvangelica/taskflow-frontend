@@ -32,6 +32,10 @@ export default function AvatarManager({ currentImage, onClose, onUpload, onDelet
   const handleSaveCrop = async () => {
     try {
       const croppedBlob = await getCroppedImg(imageSrc, croppedAreaPixels);
+      if (!croppedBlob) {
+        toast.error('Aguarde o carregamento do recorte e tente novamente.');
+        return;
+      }
       // We pass the blob up to be uploaded
       onUpload(croppedBlob);
       setIsCropping(false);

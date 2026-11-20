@@ -16,7 +16,41 @@ export const oidcSettings = {
   redirect_uri: import.meta.env.VITE_REDIRECT_URI,
   response_type: "code",
   post_logout_redirect_uri: import.meta.env.VITE_REDIRECT_URI,
-  userStore: new WebStorageStateStore({ store: window.localStorage }),
+  // Tokens (access, refresh e id) ficam no sessionStorage: valem só para a aba e somem ao fechá-la.
+  // Uma aba nova entra pelo SSO do Keycloak, sem pedir senha enquanto a sessão estiver ativa.
+  userStore: new WebStorageStateStore({ store: window.sessionStorage }),
+};
+
+/**
+ * Remove tokens que versões anteriores guardavam no localStorage (persistiam após fechar o navegador).
+ */
+export const removeLegacyLocalTokens = () => {
+  try {
+    Object.keys(window.localStorage).forEach((key) => {
+      if (key.startsWith('oidc.user:')) {
+        window.localStorage.removeItem(key);
+      }
+    });
+  } catch {
+    // storage indisponível: nada a limpar
+  }
+};
+
+/**
+ * Remove apenas a sessão (tokens) desta aba, que fica no sessionStorage.
+ * Usado quando a sessão da aba é invalidada: não apaga o "state" de logins em andamento em
+ * outras abas, que o oidc-client-ts guarda no localStorage (compartilhado entre as abas).
+ */
+export const clearTabSession = () => {
+  try {
+    Object.keys(window.sessionStorage).forEach((key) => {
+      if (key.startsWith('oidc.user:')) {
+        window.sessionStorage.removeItem(key);
+      }
+    });
+  } catch {
+    // storage indisponível: nada a limpar
+  }
 };
 
 /**
@@ -41,12 +75,12 @@ export const clearOidcStorage = () => {
 };
 
 /**
- * Verifica se já existe um token ativo e não expirado salvo no storage local.
+ * Verifica se já existe um token ativo e não expirado salvo no storage da aba.
  */
 export const hasActiveStoredToken = () => {
   try {
     const storageKey = `oidc.user:${oidcSettings.authority}:${oidcSettings.client_id}`;
-    const rawUser = window.localStorage.getItem(storageKey);
+    const rawUser = window.sessionStorage.getItem(storageKey);
     if (!rawUser) return false;
     const parsed = JSON.parse(rawUser);
     if (!parsed || !parsed.access_token) return false;
