@@ -20,6 +20,7 @@ export default function EditTasks() {
   const [isLoading, setIsLoading] = useState(false); 
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const [showDeletedModal, setShowDeletedModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const [selectedTaskId, setSelectedTaskId] = useState('');
 
@@ -219,13 +220,15 @@ export default function EditTasks() {
     }
   };
 
-  const handleDeleteTask = async () => {
+  // Abre o modal de confirmação; a exclusão só ocorre em confirmDeleteTask
+  const handleDeleteTask = () => {
     if (!selectedTaskId || !selectedTask) return;
-    const labelNum = selectedTask.taskNumber ?? selectedTask.id;
-    if (!window.confirm(`Tem certeza que deseja excluir a tarefa "${labelNum} - ${taskData.titulo}"?`)) {
-      return;
-    }
+    setShowDeleteConfirm(true);
+  };
 
+  const confirmDeleteTask = async () => {
+    setShowDeleteConfirm(false);
+    if (!selectedTaskId || !selectedTask) return;
     setErro(null);
     setIsLoading(true);
 
@@ -474,6 +477,46 @@ export default function EditTasks() {
         token={auth?.user?.access_token}
         refreshKey={historyRefreshKey}
       />
+
+      {showDeleteConfirm && selectedTask && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-delete-title"
+          onClick={() => setShowDeleteConfirm(false)}
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ backgroundColor: 'var(--bg-card)', padding: '30px', borderRadius: '12px', width: '90%', maxWidth: '420px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}
+          >
+            <h3 id="confirm-delete-title" style={{ margin: '0 0 15px 0', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <FaTrashAlt style={{ color: '#dc2626' }} /> Excluir tarefa
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '25px', lineHeight: '1.5' }}>
+              Tem certeza que deseja excluir a tarefa <strong>"{selectedTask.taskNumber ?? selectedTask.id} - {taskData.titulo}"</strong>?
+              Esta ação não pode ser desfeita.
+            </p>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                autoFocus
+                onClick={() => setShowDeleteConfirm(false)}
+                style={{ padding: '10px 15px', border: 'none', background: '#6b7280', borderRadius: '8px', cursor: 'pointer', color: 'white' }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteTask}
+                style={{ padding: '10px 15px', border: 'none', background: '#dc2626', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
