@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
 
@@ -16,10 +16,12 @@ import {
   POST_REGISTER_LOGIN_KEY,
   REGISTERED_EMAIL_KEY,
   clearOidcStorage,
+  clearTabSession,
   hasActiveStoredToken,
 } from './auth/keycloakConfig';
 import { signupRedirect } from './auth/signup';
 import { ToastContainer } from 'react-toastify';
+import SessionErrorModal from './components/SessionErrorModal/SessionErrorModal';
 import 'react-toastify/dist/ReactToastify.css';
 
 /**
@@ -52,6 +54,13 @@ function App() {
   const isActiveToken = Boolean(
     (auth.isAuthenticated && !auth.user?.expired) ||
     (!auth.error && hasActiveStoredToken())
+  );
+
+  // Access token vencido, mas com refresh token: a sessão pode ser renovada sem novo login.
+  // Acontece ao abrir/recarregar o app depois de o token expirar (a biblioteca só renova sozinha
+  // tokens que ainda não venceram).
+  const needsSessionRenewal = Boolean(
+    !auth.isLoading && !auth.error && auth.user?.expired && auth.user?.refresh_token
   );
 
   const isPostRegisterRedirect =
@@ -103,31 +112,75 @@ function App() {
           window.location.replace('/');
         });
     }
-  }, [auth.isLoading, auth, startSignupParam, startLoginParam]);
+  }, [auth.isLoading, auth, startSignupParam, startLoginParam, isVerifiedParam]);
 
-  // 2. Auto-recuperação de falhas de renovação silenciosa ou sessão encerrada no Keycloak
+  // 2. Auto-recuperação: a sessão só é descartada quando a renovação falha ou a sessão é encerrada
+  //    no Keycloak. A expiração do access token é normal (ele dura minutos) e não encerra a sessão.
+  const authEvents = auth?.events;
+  const removeUser = auth?.removeUser;
   useEffect(() => {
-    if (!auth?.events) return undefined;
+    if (!authEvents) return undefined;
 
+    // Só a sessão desta aba: limpar todo o storage OIDC apagaria o "state" de logins em andamento em outras abas
     const handleSessionInvalidated = () => {
-      clearOidcStorage();
+      clearTabSession();
+      removeUser?.().catch(() => {});
       if (window.location.pathname !== '/' && !window.location.pathname.startsWith('/dashboard')) {
         window.history.replaceState({}, document.title, '/');
       }
     };
 
-    const unsubSilentError = auth.events.addSilentRenewError(handleSessionInvalidated);
-    const unsubSignedOut = auth.events.addUserSignedOut(handleSessionInvalidated);
-    const unsubExpired = auth.events.addAccessTokenExpired(handleSessionInvalidated);
+    const unsubSilentError = authEvents.addSilentRenewError(handleSessionInvalidated);
+    const unsubSignedOut = authEvents.addUserSignedOut(handleSessionInvalidated);
 
     return () => {
       if (typeof unsubSilentError === 'function') unsubSilentError();
       if (typeof unsubSignedOut === 'function') unsubSignedOut();
-      if (typeof unsubExpired === 'function') unsubExpired();
     };
-  }, [auth?.events]);
+  }, [authEvents, removeUser]);
+
+  // 2.1 Renova a sessão quando o app abre com o access token vencido (uma tentativa por token).
+  //     Se o refresh token também não valer mais, descarta a sessão desta aba sem travar o spinner.
+  const renewingRef = useRef(false);
+  const renewalAttemptedForTokenRef = useRef(null);
+  useEffect(() => {
+    if (!auth.user?.expired) {
+      renewalAttemptedForTokenRef.current = null;
+      return;
+    }
+    if (!needsSessionRenewal || renewingRef.current) return;
+    const tokenKey = auth.user?.access_token || auth.user?.refresh_token || 'expired';
+    if (renewalAttemptedForTokenRef.current === tokenKey) return;
+    renewalAttemptedForTokenRef.current = tokenKey;
+    renewingRef.current = true;
+    auth
+      .signinSilent()
+      .then((renewedUser) => {
+        if (!renewedUser || renewedUser.expired) {
+          clearTabSession();
+          auth.removeUser().catch(() => {});
+        }
+      })
+      .catch(() => {
+        clearTabSession();
+        auth.removeUser().catch(() => {});
+      })
+      .finally(() => {
+        renewingRef.current = false;
+      });
+  }, [needsSessionRenewal, auth]);
 
   const errorHandledRef = useRef(null);
+
+  // Aviso ao usuário quando a autenticação falha: exibido uma vez por erro, até ser fechado.
+  const [dismissedAuthError, setDismissedAuthError] = useState(null);
+  const showSessionError = Boolean(auth.error) && dismissedAuthError !== auth.error;
+
+  const handleSessionErrorLogin = () => {
+    setDismissedAuthError(auth.error);
+    window.localStorage.removeItem(REGISTER_FLOW_KEY);
+    auth.signinRedirect({ redirectMethod: 'replace' });
+  };
 
   // 3. Limpeza imediata de parâmetros residuais de callback caso ocorra erro (protegido contra loop de re-render)
   useEffect(() => {
@@ -143,12 +196,13 @@ function App() {
       window.history.replaceState({}, document.title, window.location.pathname || '/');
     }
     if (!hasActiveStoredToken()) {
-      clearOidcStorage();
+      // Só a sessão desta aba (o "state" de logins em andamento em outras abas fica no localStorage)
+      clearTabSession();
     }
   }, [auth.error]);
 
   // Condicional de carregamento apenas durante o handshake inicial ou redirecionamento pós-cadastro
-  if (auth.isLoading || isPostRegisterRedirect) {
+  if (auth.isLoading || isPostRegisterRedirect || needsSessionRenewal) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: '20px' }}>
         <div style={{
@@ -158,7 +212,9 @@ function App() {
           fontSize: '1.8rem', fontWeight: 'bold', animation: 'pulse 1.5s infinite'
         }}>T</div>
         <div style={{ color: 'var(--text-secondary)', fontWeight: '500' }}>
-          {isPostRegisterRedirect ? 'Redirecionando para o login...' : 'Iniciando TaskFlow...'}
+          {isPostRegisterRedirect
+            ? 'Redirecionando para o login...'
+            : needsSessionRenewal ? 'Renovando sua sessão...' : 'Iniciando TaskFlow...'}
         </div>
       </div>
     );
@@ -183,6 +239,13 @@ function App() {
         {/* Qualquer outra rota: redireciona para a Landing Page (/) com replace */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
+
+      {showSessionError && (
+        <SessionErrorModal
+          onLogin={handleSessionErrorLogin}
+          onClose={() => setDismissedAuthError(auth.error)}
+        />
+      )}
     </Router>
   );
 }

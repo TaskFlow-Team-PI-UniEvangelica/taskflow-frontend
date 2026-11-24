@@ -1,6 +1,7 @@
 import { useAuth } from 'react-oidc-context';
 import React, { useState, useEffect, useContext } from 'react';
-import { OrganizationContext } from '../../context/OrganizationContext';
+import { OrganizationContext } from '../../context/OrganizationContextObject';
+import { lerMensagemDeErro } from '../../utils/lerMensagemDeErro';
 import styles from './Tasks.module.css';
 import { FaCheckCircle, FaCalendarAlt, FaUsers } from 'react-icons/fa'; 
 
@@ -75,8 +76,7 @@ export default function Tasks() {
         setTaskData({ titulo: '', descricao: '', prioridade: '', prazo: '', idsResponsaveis: [] });
         setTimeout(() => setShowSuccess(false), 2500);
       } else {
-        const errData = await response.json().catch(() => null);
-        setErro(errData?.message || 'Erro ao registrar a tarefa no sistema.');
+        setErro(await lerMensagemDeErro(response, 'Erro ao registrar a tarefa no sistema.'));
       }
     } catch (_error) {
       setErro('Falha na comunicação com o servidor.');

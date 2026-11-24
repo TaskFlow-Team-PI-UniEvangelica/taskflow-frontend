@@ -7,7 +7,8 @@ import {
 } from 'react-icons/fa';
 
 import styles from './LandingPage.module.css';
-import LandingNavbar, { scrollToSection } from './components/LandingNavbar';
+import LandingNavbar from './components/LandingNavbar';
+import { scrollToSection } from './scrollToSection';
 import HeroKanbanMockup from './components/HeroKanbanMockup';
 import FeatureCard from './components/FeatureCard';
 import useReveal from './components/useReveal';

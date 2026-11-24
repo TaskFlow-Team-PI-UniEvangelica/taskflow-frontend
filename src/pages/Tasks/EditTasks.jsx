@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useContext } from 'react';
-import { OrganizationContext } from '../../context/OrganizationContext';
+import { OrganizationContext } from '../../context/OrganizationContextObject';
 import { useAuth } from 'react-oidc-context';
 import { useLocation } from 'react-router-dom';
 import styles from './Tasks.module.css'; 
 import { FaCheckCircle, FaCalendarAlt, FaUsers, FaTrashAlt } from 'react-icons/fa'; 
 import TaskTimeline from '../../components/TaskHistory/TaskTimeline';
 import DeletedTasksModal from '../../components/TaskHistory/DeletedTasksModal';
+import { lerMensagemDeErro } from '../../utils/lerMensagemDeErro';
 
 export default function EditTasks() {
   const auth = useAuth();
@@ -20,6 +21,7 @@ export default function EditTasks() {
   const [isLoading, setIsLoading] = useState(false); 
   const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
   const [showDeletedModal, setShowDeletedModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const [selectedTaskId, setSelectedTaskId] = useState('');
 
@@ -32,21 +34,19 @@ export default function EditTasks() {
 
   const selectedTask = tasks.find(t => t.id.toString() === selectedTaskId) || null;
 
+  // Identificação apenas por ID, como no backend (nomes podem se repetir).
   const isOwnTask = Boolean(
     selectedTask &&
-    currentUser &&
-    ((selectedTask.criadorId != null && Number(selectedTask.criadorId) === Number(currentUser.id)) ||
-     (selectedTask.nomeCriador && currentUser.nome && selectedTask.nomeCriador === currentUser.nome))
+    currentUser?.id != null &&
+    selectedTask.criadorId != null &&
+    Number(selectedTask.criadorId) === Number(currentUser.id)
   );
 
   const isAssignedTask = Boolean(
     selectedTask &&
-    currentUser &&
-    ((Array.isArray(selectedTask.idsResponsaveis) &&
-      selectedTask.idsResponsaveis.some(id => Number(id) === Number(currentUser.id))) ||
-     (Array.isArray(selectedTask.nomesResponsaveis) &&
-      currentUser.nome &&
-      selectedTask.nomesResponsaveis.includes(currentUser.nome)))
+    currentUser?.id != null &&
+    Array.isArray(selectedTask.idsResponsaveis) &&
+    selectedTask.idsResponsaveis.some(id => id != null && Number(id) === Number(currentUser.id))
   );
 
   const isOwnOrAssignedTask = isOwnTask || isAssignedTask;
@@ -152,11 +152,7 @@ export default function EditTasks() {
               ? `${taskToEdit.prazo[0]}-${String(taskToEdit.prazo[1]).padStart(2, '0')}-${String(taskToEdit.prazo[2]).padStart(2, '0')}`
               : String(taskToEdit.prazo).split('T')[0])
           : '';
-        const idsAtuais = Array.isArray(taskToEdit.idsResponsaveis) && taskToEdit.idsResponsaveis.length > 0
-          ? taskToEdit.idsResponsaveis
-          : teamMembers
-              .filter(m => Array.isArray(taskToEdit.nomesResponsaveis) && taskToEdit.nomesResponsaveis.includes(m.nome))
-              .map(m => m.id);
+        const idsAtuais = Array.isArray(taskToEdit.idsResponsaveis) ? taskToEdit.idsResponsaveis : [];
         setTaskData({
           titulo: taskToEdit.titulo,
           descricao: taskToEdit.descricao || '',
@@ -215,8 +211,7 @@ export default function EditTasks() {
         setHistoryRefreshKey(prev => prev + 1);
         setTimeout(() => setShowSuccess(false), 2500);
       } else {
-        const errData = await response.json().catch(() => null);
-        setErro(errData?.message || 'Erro ao atualizar a tarefa.');
+        setErro(await lerMensagemDeErro(response, 'Erro ao atualizar a tarefa.'));
       }
     } catch (_error) {
       setErro('Falha na comunicação com o servidor.');
@@ -225,13 +220,15 @@ export default function EditTasks() {
     }
   };
 
-  const handleDeleteTask = async () => {
+  // Abre o modal de confirmação; a exclusão só ocorre em confirmDeleteTask
+  const handleDeleteTask = () => {
     if (!selectedTaskId || !selectedTask) return;
-    const labelNum = selectedTask.taskNumber ?? selectedTask.id;
-    if (!window.confirm(`Tem certeza que deseja excluir a tarefa "${labelNum} - ${taskData.titulo}"?`)) {
-      return;
-    }
+    setShowDeleteConfirm(true);
+  };
 
+  const confirmDeleteTask = async () => {
+    setShowDeleteConfirm(false);
+    if (!selectedTaskId || !selectedTask) return;
     setErro(null);
     setIsLoading(true);
 
@@ -253,8 +250,7 @@ export default function EditTasks() {
         setHistoryRefreshKey(prev => prev + 1);
         setTimeout(() => setShowSuccess(false), 2500);
       } else {
-        const errData = await response.json().catch(() => null);
-        setErro(errData?.message || 'Você não possui permissão para excluir esta tarefa.');
+        setErro(await lerMensagemDeErro(response, 'Você não possui permissão para excluir esta tarefa.'));
       }
     } catch (_error) {
       setErro('Falha na comunicação com o servidor.');
@@ -480,6 +476,46 @@ export default function EditTasks() {
         token={auth?.user?.access_token}
         refreshKey={historyRefreshKey}
       />
+
+      {showDeleteConfirm && selectedTask && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="confirm-delete-title"
+          onClick={() => setShowDeleteConfirm(false)}
+          style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            style={{ backgroundColor: 'var(--bg-card)', padding: '30px', borderRadius: '12px', width: '90%', maxWidth: '420px', boxShadow: '0 10px 30px rgba(0,0,0,0.2)' }}
+          >
+            <h3 id="confirm-delete-title" style={{ margin: '0 0 15px 0', color: 'var(--text-primary)', display: 'flex', alignItems: 'center', gap: '10px' }}>
+              <FaTrashAlt style={{ color: '#dc2626' }} /> Excluir tarefa
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', marginBottom: '25px', lineHeight: '1.5' }}>
+              Tem certeza que deseja excluir a tarefa <strong>"{selectedTask.taskNumber ?? selectedTask.id} - {taskData.titulo}"</strong>?
+              Esta ação não pode ser desfeita.
+            </p>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                autoFocus
+                onClick={() => setShowDeleteConfirm(false)}
+                style={{ padding: '10px 15px', border: 'none', background: '#6b7280', borderRadius: '8px', cursor: 'pointer', color: 'white' }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                onClick={confirmDeleteTask}
+                style={{ padding: '10px 15px', border: 'none', background: '#dc2626', color: 'white', borderRadius: '8px', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                Excluir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

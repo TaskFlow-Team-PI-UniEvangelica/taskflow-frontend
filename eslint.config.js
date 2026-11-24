@@ -23,7 +23,13 @@ export default defineConfig([
       },
     },
     rules: {
-      'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // Mesma convenção para variáveis, parâmetros (ex.: { icon: Icon } usado em JSX) e erros de catch
+      // intencionalmente não usados (prefixo _), que o ESLint 9 passou a verificar por padrão.
+      'no-unused-vars': ['error', {
+        varsIgnorePattern: '^[A-Z_]',
+        argsIgnorePattern: '^[A-Z_]',
+        caughtErrorsIgnorePattern: '^_',
+      }],
     },
   },
 ])

@@ -5,25 +5,19 @@ import styles from './DashboardLayout.module.css';
 // --- MUDANÇA: FaTrello adicionado na lista de importações abaixo ---
 import { FaUser, FaTrash, FaChartPie, FaTasks, FaUsers, FaSignOutAlt, FaTimes, FaMoon, FaSun, FaSave, FaKey, FaCamera, FaIdBadge, FaEnvelope, FaBriefcase, FaEdit, FaTrello, FaBuilding, FaBell, FaBars } from 'react-icons/fa';
 import { useTheme } from '../../context/ThemeContext';
-import { OrganizationContext } from '../../context/OrganizationContext';
-import PasswordInput from '../UI/PasswordInput';
+import { OrganizationContext } from '../../context/OrganizationContextObject';
 import AvatarManager from './AvatarManager';
+import ErrorBoundary from '../ErrorBoundary/ErrorBoundary';
 import { LOGOUT_FLAG_KEY, clearOidcStorage } from '../../auth/keycloakConfig';
+import { lerMensagemDeErro } from '../../utils/lerMensagemDeErro';
 
 export default function DashboardLayout() {
   const auth = useAuth();
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
-  const [isChangingPassword, setIsChangingPassword] = useState(false);
-
-  // --- MUDANÇA 1: Adicionado estado para a senha atual ---
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [showProfileModal, setShowProfileModal] = useState(false);
   const [showAvatarManager, setShowAvatarManager] = useState(false);
-  const [isLoadingPassword, setIsLoadingPassword] = useState(false);
   const [invites, setInvites] = useState([]);
   const [showInvitesDropdown, setShowInvitesDropdown] = useState(false);
 
@@ -73,7 +67,7 @@ export default function DashboardLayout() {
 
     return () => clearInterval(interval);
   }, [auth?.user?.access_token]);
-  const { organizations, currentOrg, selectOrganization, refreshOrganizations } = useContext(OrganizationContext);
+  const { currentOrg, refreshOrganizations } = useContext(OrganizationContext);
 
   const handleInviteAction = async (inviteId, action) => {
     const token = auth?.user?.access_token;
@@ -89,9 +83,9 @@ export default function DashboardLayout() {
           await refreshOrganizations();
         }
       } else {
-        showNotification('Erro ao processar convite', 'error');
+        showNotification(await lerMensagemDeErro(res, 'Erro ao processar convite'), 'error');
       }
-    } catch (e) {
+    } catch {
       showNotification('Erro interno', 'error');
     }
   };
@@ -100,6 +94,102 @@ export default function DashboardLayout() {
     setTimeout(() => setToast({ show: false, message: '', type: '' }), 3000);
   };
 
+
+
+  
+  const fetchAndSetAvatar = async (userId) => {
+    const token = auth?.user?.access_token;
+    if (!token) return;
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/user/${userId}/avatar`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        setProfileImage(prev => {
+          if (prev) URL.revokeObjectURL(prev);
+          return objectUrl;
+        });
+      } else {
+        setProfileImage(prev => {
+          if (prev) URL.revokeObjectURL(prev);
+          return null;
+        });
+        setShowAvatarManager(false);
+      }
+    } catch {
+      setProfileImage(prev => {
+        if (prev) URL.revokeObjectURL(prev);
+        return null;
+      });
+      setShowAvatarManager(false);
+    }
+  };
+
+  const handleUploadBlob = async (blob) => {
+    const formData = new FormData();
+    formData.append('file', blob, 'avatar.jpg');
+    const token = auth?.user?.access_token;
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/user/me/avatar`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: formData
+      });
+      if (response.ok) {
+        showNotification("Foto de perfil atualizada!", "save");
+        fetchAndSetAvatar(userData.id);
+        setShowAvatarManager(false);
+      } else {
+        showNotification(await lerMensagemDeErro(response, "Erro ao atualizar foto"), "error");
+      }
+    } catch {
+      showNotification("Erro ao fazer upload da foto", "error");
+    }
+  };
+
+  const handleDeletePhoto = async () => {
+    const token = auth?.user?.access_token;
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_URL}/user/me/avatar`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      if (response.ok) {
+        showNotification("Foto removida com sucesso!", "save");
+        setProfileImage(prev => {
+          if (prev) URL.revokeObjectURL(prev);
+          return null;
+        });
+        setShowAvatarManager(false);
+      } else {
+        showNotification("Erro ao remover a foto no servidor.", "error");
+      }
+    } catch {
+      showNotification("Erro ao remover foto", "error");
+    }
+  };
+
+  const handleLogoutConfirm = async () => {
+    // sinaliza para a landing page exibir o aviso de "você saiu da sua conta"
+    sessionStorage.setItem(LOGOUT_FLAG_KEY, '1');
+    setShowLogoutModal(false);
+
+    const idTokenHint = auth?.user?.id_token;
+    try {
+      await auth.removeUser();
+      clearOidcStorage();
+      await auth.signoutRedirect(
+        idTokenHint ? { id_token_hint: idTokenHint } : undefined
+      );
+    } catch (_err) {
+      clearOidcStorage();
+      window.location.replace('/');
+    }
+  };
+
+  // Declarado depois de fetchAndSetAvatar e handleLogoutConfirm, que ele utiliza
   useEffect(() => {
     const buscarDadosDoUsuario = async () => {
       const token = auth?.user?.access_token;
@@ -131,103 +221,11 @@ export default function DashboardLayout() {
     };
 
     buscarDadosDoUsuario();
+    // Carga inicial a partir da API: o setState ocorre após o fetch, de forma assíncrona.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchInvites();
     
   }, [navigate]);
-
-
-  
-  const fetchAndSetAvatar = async (userId) => {
-    const token = auth?.user?.access_token;
-    if (!token) return;
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/user/${userId}/avatar`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        const blob = await response.blob();
-        const objectUrl = URL.createObjectURL(blob);
-        setProfileImage(prev => {
-          if (prev) URL.revokeObjectURL(prev);
-          return objectUrl;
-        });
-      } else {
-        setProfileImage(prev => {
-          if (prev) URL.revokeObjectURL(prev);
-          return null;
-        });
-        setShowAvatarManager(false);
-      }
-    } catch (e) {
-      setProfileImage(prev => {
-        if (prev) URL.revokeObjectURL(prev);
-        return null;
-      });
-      setShowAvatarManager(false);
-    }
-  };
-
-  const handleUploadBlob = async (blob) => {
-    const formData = new FormData();
-    formData.append('file', blob, 'avatar.jpg');
-    const token = auth?.user?.access_token;
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/user/me/avatar`, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${token}` },
-        body: formData
-      });
-      if (response.ok) {
-        showNotification("Foto de perfil atualizada!", "save");
-        fetchAndSetAvatar(userData.id);
-        setShowAvatarManager(false);
-      } else {
-        showNotification("Erro ao atualizar foto", "error");
-      }
-    } catch (err) {
-      showNotification("Erro ao fazer upload da foto", "error");
-    }
-  };
-
-  const handleDeletePhoto = async () => {
-    const token = auth?.user?.access_token;
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/user/me/avatar`, {
-        method: 'DELETE',
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-      if (response.ok) {
-        showNotification("Foto removida com sucesso!", "save");
-        setProfileImage(prev => {
-          if (prev) URL.revokeObjectURL(prev);
-          return null;
-        });
-        setShowAvatarManager(false);
-      } else {
-        showNotification("Erro ao remover a foto no servidor.", "error");
-      }
-    } catch (err) {
-      showNotification("Erro ao remover foto", "error");
-    }
-  };
-
-  const handleLogoutConfirm = async () => {
-    // sinaliza para a landing page exibir o aviso de "você saiu da sua conta"
-    sessionStorage.setItem(LOGOUT_FLAG_KEY, '1');
-    setShowLogoutModal(false);
-
-    const idTokenHint = auth?.user?.id_token;
-    try {
-      await auth.removeUser();
-      clearOidcStorage();
-      await auth.signoutRedirect(
-        idTokenHint ? { id_token_hint: idTokenHint } : undefined
-      );
-    } catch (_err) {
-      clearOidcStorage();
-      window.location.replace('/');
-    }
-  };
 
   const isActive = (path) => location.pathname === path;
 
@@ -238,10 +236,18 @@ export default function DashboardLayout() {
         <div className={styles.toastContainer}>
           <div className={styles.toastCard}>
             <div className={styles.toastIcon}>
-              {toast.type === 'save' ? <FaSave /> : <FaKey />}
+              {toast.type === 'error' ? <FaTimes /> : toast.type === 'save' || toast.type === 'success' ? <FaSave /> : <FaKey />}
             </div>
             <div className={styles.toastText}>
-              <strong>{toast.type === 'save' ? 'Sistema' : 'Segurança'}</strong>
+              <strong>
+                {toast.type === 'error'
+                  ? 'Erro'
+                  : toast.type === 'success'
+                    ? 'Sucesso'
+                    : toast.type === 'save'
+                      ? 'Sistema'
+                      : 'Segurança'}
+              </strong>
               <span>{toast.message}</span>
             </div>
           </div>
@@ -368,7 +374,10 @@ export default function DashboardLayout() {
           </div>
         </div>
 
-        <Outlet />
+        {/* Erro em uma página não derruba o layout; a navegação para outra rota limpa o erro */}
+        <ErrorBoundary resetKey={location.pathname}>
+          <Outlet />
+        </ErrorBoundary>
       </main>
 
       {showLogoutModal && (
@@ -388,7 +397,7 @@ export default function DashboardLayout() {
         <div className={styles.modalOverlay}>
           <div className={styles.modalBox} style={{ maxWidth: '450px' }}>
             <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <FaTimes onClick={() => { setShowProfileModal(false); setIsChangingPassword(false); }} style={{ cursor: 'pointer', color: 'var(--text-secondary)' }} />
+              <FaTimes onClick={() => { setShowProfileModal(false); }} style={{ cursor: 'pointer', color: 'var(--text-secondary)' }} />
             </div>
 
             <div className={styles.profileHeader} style={{ marginBottom: '30px' }}>
