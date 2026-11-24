@@ -6,11 +6,11 @@ let registrationManager = null;
 /**
  * Redireciona o usuário direto para a tela de cadastro do Keycloak.
  *
- * O Keycloak 24 ainda não suporta `prompt=create`, então usamos o endpoint
- * `/protocol/openid-connect/registrations`, que aceita os mesmos parâmetros
- * do endpoint de autorização (inclusive PKCE). O state é salvo no mesmo
- * storage padrão do AuthProvider, então o callback é processado normalmente
- * pelo react-oidc-context ao voltar para a aplicação.
+ * Usa o endpoint `/protocol/openid-connect/registrations`, que aceita os mesmos
+ * parâmetros do endpoint de autorização (inclusive PKCE). O Keycloak 26 também
+ * aceita `prompt=create`; a migração está registrada como evolução. O state é
+ * salvo no mesmo storage padrão do AuthProvider, então o callback é processado
+ * normalmente pelo react-oidc-context ao voltar para a aplicação.
  */
 export const signupRedirect = () => {
   // Caso o usuário já esteja com token ativo, garante que sempre vá para o dashboard
