@@ -2,6 +2,7 @@ import { toast } from 'react-toastify';
 import React, { useContext, useState } from 'react';
 import { useAuth } from 'react-oidc-context';
 import { OrganizationContext } from '../../context/OrganizationContextObject';
+import { lerMensagemDeErro } from '../../utils/lerMensagemDeErro';
 import styles from './Organizations.module.css';
 import { FaBuilding, FaPlus, FaCog, FaTimes } from 'react-icons/fa';
 
@@ -237,8 +238,7 @@ export default function Organizations() {
         toast.success('Organização atualizada com sucesso!');
         refreshOrganizations();
       } else {
-        const err = await response.json().catch(() => null);
-        toast.error(err?.message || 'Erro ao atualizar organização. Verifique se você tem permissão.');
+        toast.error(await lerMensagemDeErro(response, 'Erro ao atualizar organização. Verifique se você tem permissão.'));
       }
     } catch (_err) {
       toast.error('Erro de rede.');
@@ -323,8 +323,7 @@ export default function Organizations() {
         setShowCreateModal(false);
         refreshOrganizations();
       } else {
-        const err = await response.json().catch(() => null);
-        toast.error(err?.message || 'Erro ao criar organização');
+        toast.error(await lerMensagemDeErro(response, 'Erro ao criar organização'));
       }
     } catch (_err) {
       toast.error('Erro de comunicação com servidor');

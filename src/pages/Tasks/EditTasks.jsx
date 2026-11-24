@@ -6,6 +6,7 @@ import styles from './Tasks.module.css';
 import { FaCheckCircle, FaCalendarAlt, FaUsers, FaTrashAlt } from 'react-icons/fa'; 
 import TaskTimeline from '../../components/TaskHistory/TaskTimeline';
 import DeletedTasksModal from '../../components/TaskHistory/DeletedTasksModal';
+import { lerMensagemDeErro } from '../../utils/lerMensagemDeErro';
 
 export default function EditTasks() {
   const auth = useAuth();
@@ -210,8 +211,7 @@ export default function EditTasks() {
         setHistoryRefreshKey(prev => prev + 1);
         setTimeout(() => setShowSuccess(false), 2500);
       } else {
-        const errData = await response.json().catch(() => null);
-        setErro(errData?.message || 'Erro ao atualizar a tarefa.');
+        setErro(await lerMensagemDeErro(response, 'Erro ao atualizar a tarefa.'));
       }
     } catch (_error) {
       setErro('Falha na comunicação com o servidor.');
@@ -250,8 +250,7 @@ export default function EditTasks() {
         setHistoryRefreshKey(prev => prev + 1);
         setTimeout(() => setShowSuccess(false), 2500);
       } else {
-        const errData = await response.json().catch(() => null);
-        setErro(errData?.message || 'Você não possui permissão para excluir esta tarefa.');
+        setErro(await lerMensagemDeErro(response, 'Você não possui permissão para excluir esta tarefa.'));
       }
     } catch (_error) {
       setErro('Falha na comunicação com o servidor.');

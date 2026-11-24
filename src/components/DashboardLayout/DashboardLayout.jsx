@@ -9,6 +9,7 @@ import { OrganizationContext } from '../../context/OrganizationContextObject';
 import AvatarManager from './AvatarManager';
 import ErrorBoundary from '../ErrorBoundary/ErrorBoundary';
 import { LOGOUT_FLAG_KEY, clearOidcStorage } from '../../auth/keycloakConfig';
+import { lerMensagemDeErro } from '../../utils/lerMensagemDeErro';
 
 export default function DashboardLayout() {
   const auth = useAuth();
@@ -82,8 +83,7 @@ export default function DashboardLayout() {
           await refreshOrganizations();
         }
       } else {
-        const errData = await res.json().catch(() => null);
-        showNotification(errData?.detail || errData?.message || 'Erro ao processar convite', 'error');
+        showNotification(await lerMensagemDeErro(res, 'Erro ao processar convite'), 'error');
       }
     } catch {
       showNotification('Erro interno', 'error');
@@ -142,8 +142,7 @@ export default function DashboardLayout() {
         fetchAndSetAvatar(userData.id);
         setShowAvatarManager(false);
       } else {
-        const errData = await response.json().catch(() => null);
-        showNotification(errData?.detail || errData?.message || "Erro ao atualizar foto", "error");
+        showNotification(await lerMensagemDeErro(response, "Erro ao atualizar foto"), "error");
       }
     } catch {
       showNotification("Erro ao fazer upload da foto", "error");

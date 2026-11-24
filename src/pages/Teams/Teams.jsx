@@ -3,6 +3,7 @@ import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from 'react-oidc-context';
 import { OrganizationContext } from '../../context/OrganizationContextObject';
+import { lerMensagemDeErro } from '../../utils/lerMensagemDeErro';
 import styles from './Equipe.module.css';
 import { FaUserCircle, FaEnvelope, FaSearch, FaPlus, FaArrowLeft, FaTimes, FaCog, FaInfoCircle } from 'react-icons/fa';
 
@@ -75,8 +76,7 @@ export default function Equipe() {
         setIsAddingMember(false);
         toast.success('Convite enviado com sucesso!');
       } else {
-        const errData = await response.json().catch(() => null);
-        toast.error(errData?.detail || errData?.message || 'Erro ao convidar membro.');
+        toast.error(await lerMensagemDeErro(response, 'Erro ao convidar membro.'));
       }
     } catch {
       toast.error('Erro de rede.');
@@ -125,8 +125,7 @@ export default function Equipe() {
               fetchEquipe();
             }
           } else {
-            const errData = await response.json().catch(() => null);
-            toast.error(errData?.detail || errData?.message || "Você não tem permissão para realizar esta ação.");
+            toast.error(await lerMensagemDeErro(response, "Você não tem permissão para realizar esta ação."));
           }
         } catch {
           toast.error("Erro de rede.");
@@ -155,8 +154,7 @@ export default function Equipe() {
             fetchEquipe();
             refreshOrganizations();
           } else {
-            const errData = await response.json().catch(() => null);
-            toast.error(errData?.detail || errData?.message || "Erro ao transferir a posse.");
+            toast.error(await lerMensagemDeErro(response, "Erro ao transferir a posse."));
           }
         } catch {
           toast.error("Erro de rede.");
@@ -180,8 +178,7 @@ export default function Equipe() {
         toast.success('Papel atualizado com sucesso!');
         fetchEquipe();
       } else {
-        const errData = await response.json().catch(() => null);
-        toast.error(errData?.detail || errData?.message || 'Erro ao atualizar papel do usuário.');
+        toast.error(await lerMensagemDeErro(response, 'Erro ao atualizar papel do usuário.'));
       }
     } catch {
       toast.error('Erro de rede.');
